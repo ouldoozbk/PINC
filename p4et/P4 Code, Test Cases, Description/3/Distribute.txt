@@ -1,0 +1,1 @@
+Distribute packets evenly across 4 ports using an ECMP hash of the five‑tuple

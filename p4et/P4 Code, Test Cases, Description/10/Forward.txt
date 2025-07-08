@@ -1,0 +1,1 @@
+Forward IPv4 packets based on destination IP using a longest‑prefix‑match table

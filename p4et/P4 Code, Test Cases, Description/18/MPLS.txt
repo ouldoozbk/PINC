@@ -1,0 +1,1 @@
+Pop the outermost MPLS label on egress and forward the inner payload

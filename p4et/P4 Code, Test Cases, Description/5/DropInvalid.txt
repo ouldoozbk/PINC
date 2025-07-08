@@ -1,0 +1,1 @@
+Drop any packet with an invalid IPv4 header checksum

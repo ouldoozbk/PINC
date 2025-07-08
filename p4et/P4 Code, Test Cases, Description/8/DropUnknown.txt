@@ -1,0 +1,1 @@
+Drop packets carrying unknown IP protocols (not TCP, UDP, or ICMP)

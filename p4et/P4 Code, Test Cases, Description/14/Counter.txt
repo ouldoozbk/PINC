@@ -1,0 +1,1 @@
+Maintain per‑flow packet counters in a register array keyed by IPv4 five‑tuple

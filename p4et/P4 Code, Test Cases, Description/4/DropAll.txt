@@ -1,0 +1,1 @@
+Drop all TCP SYN packets from a given blacklist of source IPs

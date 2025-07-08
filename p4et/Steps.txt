@@ -1,0 +1,63 @@
+#### These are the steps required to run the official P4 docker container and then essentially run p4testgen to create and validate test cases.
+
+
+
+## Make sure you the user has p4-guide git repository cloned in local 
+git clone https://github.com/jafingerhut/p4-guide
+
+
+
+## Run the Docker container
+docker run -it --rm --privileged --cap-add=NET_ADMIN --network=host -v ~/p4-guide:/mnt p4lang/p4c /bin/bash
+
+
+
+## Inorder to create/edit files we need nano
+apt update && apt install -y nano
+
+
+
+## Other Important updates required
+apt install -y git cmake g++ pkg-config libboost-all-dev \
+  libfl-dev bison flex libgmp-dev libgc-dev python3 python3-pip nano
+
+
+
+## Clone the P4 compiler as it would be required to compile the P4 code
+cd ~
+git clone https://github.com/p4lang/p4c.git
+
+
+
+## Then go to this directory
+cd /mnt/demo1
+
+
+
+## Copy the modified shell script ("script.sh")
+## Use nano to create the file to store the shell script
+nano script.sh
+## Paste the shell script, save it 
+
+
+
+# Fix python compatibility issues
+pip3 uninstall -y protobuf googleapis-common-protos
+pip3 install --no-cache-dir protobuf==3.20.3 googleapis-common-protos
+
+
+
+# add this
+for i in $(seq 0 2 14); do
+    j=$((i + 1))
+    ip link add veth$i type veth peer name veth$j
+    ip link set veth$i up
+    ip link set veth$j up
+done
+
+
+# run the script
+/.script.sh (p4 file)
+
+
+
