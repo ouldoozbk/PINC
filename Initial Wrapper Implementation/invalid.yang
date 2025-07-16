@@ -1,0 +1,21 @@
+module invalid-example {
+  yang-version 1.1
+  namespace "http://example.com/invalid"
+  prefix inv
+
+  container interfaces {
+    list interface {
+      key "name"
+      leaf name {
+        type string
+      }
+      leaf action {
+        type enumeration {
+          enum forward
+          enum drop
+        }
+        description "Action for the interface"
+      }
+    // Missing closing brace for 'list interface'
+  } // Missing closing brace for 'container interfaces'
+}

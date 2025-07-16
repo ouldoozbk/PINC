@@ -1,0 +1,88 @@
+module network-config {
+    yang-version 1.1;
+    namespace "http://example.com/network-config";
+    prefix "net";
+
+    organization "Example Organization";
+    contact "admin@example.com";
+    description "Simple network configuration model for P4 system";
+
+    revision 2024-01-01 {
+        description "Initial version";
+    }
+
+    // Custom type definitions
+    typedef port-number {
+        type uint16 {
+            range "1..65535";  // Valid port range
+        }
+        description "Valid port number (1-65535)";
+    }
+
+    typedef interface-name {
+        type string {
+            pattern "^port[0-9]+$";  // Must be "port" followed by numbers
+        }
+        description "Interface name (e.g., port1, port2)";
+    }
+
+    typedef rule-id {
+        type uint32 {
+            range "1..1000";  // Reasonable rule ID range
+        }
+        description "Firewall rule identifier";
+    }
+
+    // Network interfaces configuration
+    //this container holds the child nodes
+    container interfaces {
+        description "Network interface settings";
+        
+        list interface {
+            key "name";
+            description "Individual interface";
+            
+            leaf name {
+                type interface-name;  // Uses our custom type
+                description "Interface name (e.g., port1, port2)";
+            }
+            
+            leaf action {
+                type enumeration {
+                    enum forward;
+                    enum drop;
+                }
+                default forward;
+                description "What to do with packets on this interface";
+            }
+        }
+    }
+
+    // Simple firewall rules
+    container firewall {
+        description "Firewall rules";
+        
+        list rule {
+            key "id";
+            description "Individual firewall rule";
+            
+            leaf id {
+                type rule-id;  // Uses our custom type
+                description "Rule number";
+            }
+            
+            leaf port {
+                type port-number;  // Uses our custom type
+                description "Port number to match";
+            }
+            
+            leaf action {
+                type enumeration {
+                    enum allow;
+                    enum deny;
+                }
+                description "Action for matching packets";
+            }
+        }
+    }
+} 
