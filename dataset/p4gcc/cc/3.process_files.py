@@ -2,13 +2,14 @@ from pathlib import Path
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 import json
-from utils import process_p4_file, detect_license  # must return cleaned_code, {version, license}
+from utils import process_p4_file, detect_license, inline_local_includes
+import re
 
 RAW_ROOT = Path("raw-repos")
-INPUT_FILE = Path("indexed_p4_files.json")
+INPUT_FILE = Path("debug/indexed_p4_files.json")
 OUTPUT_FILE = Path("p4_ds.json")
-# INPUT_FILE = Path("debug/in.json")
-# OUTPUT_FILE = Path("p4_dsddddd.json")
+# INPUT_FILE = Path("debug/dependency_resolution/in.json")
+# OUTPUT_FILE = Path("debug/dependency_resolution/p4_dsddddd.json")
 
 def find_nearest_readme(p4_path: Path, readme_paths: list[Path]) -> Path | None:
     current = p4_path.parent
@@ -58,6 +59,8 @@ def process(repo_entry: dict) -> list[dict]:
 
         try:
             raw_p4 = p4_path.read_text(encoding="utf-8", errors="ignore")
+            # TODO: ADD DEPENDENCY RESOLUTION -> done
+            resolved_p4 = inline_local_includes(raw_p4, p4_path.parent)
         except Exception as e:
             print(f"[!] Failed to read {p4_path}: {e}")
             continue
@@ -72,7 +75,12 @@ def process(repo_entry: dict) -> list[dict]:
             print(f"[!] Failed to read README {readme_path}: {e}")
             raw_readme = ""
 
-        cleaned_p4, info = process_p4_file(raw_p4)
+        # cleaned_p4, info = process_p4_file(raw_p4)
+        cleaned_p4, info = process_p4_file(resolved_p4)
+
+        cleaned_p4 = re.sub(r'\bmark_to_drop\s*\(\s*\)', 'mark_to_drop(standard_metadata)', cleaned_p4)
+        cleaned_p4 = re.sub(r'\bclone3\s*\(', 'clone_preserving_field_list(', cleaned_p4)
+
         inferred_license = info.get("license")
         inferred_version = info.get("version")
 

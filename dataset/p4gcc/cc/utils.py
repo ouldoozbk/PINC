@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 def break_into_comment_code_blocks(content: str):
     content = re.sub(r'[\n \t\r\u00A0]+$', '\n', content)
@@ -194,6 +195,7 @@ def clean_comments(blocks):
                 cleaned_comment = cleaned_comment.replace('<<<TEMP>>>', ' ')
                 cleaned_comment = cleaned_comment.lower()
 
+
             new_blocks.append({"content": cleaned_comment, "is_comment": True})
         else:
             new_blocks.append(block)
@@ -261,3 +263,33 @@ def normalize_for_deduplication(code: str):
         just_code = just_code.replace(ch, '')
 
     return just_code
+
+
+
+_INCLUDE_RE = re.compile(r'#\s*include\s*"([^"]+)"')
+def inline_local_includes(code: str, base_dir: Path, seen=None) -> str:
+
+    seen = seen or set()
+    out_lines = []
+
+    for line in code.splitlines():
+        m = _INCLUDE_RE.match(line.strip())
+        if m:
+            inc_path = (base_dir / m.group(1)).resolve()
+            if inc_path in seen or not inc_path.exists():
+                # skip cyclic or missing include, keep original line as comment
+                out_lines.append(f"// unresolved {m.group(1)}")
+                continue
+            seen.add(inc_path)
+            try:
+                inc_code = inc_path.read_text(encoding="utf-8", errors="ignore")
+                inlined = inline_local_includes(inc_code, inc_path.parent, seen)
+                out_lines.append(f"// BEGIN inlined {m.group(1)}")
+                out_lines.append(inlined)
+                out_lines.append(f"// END inlined {m.group(1)}")
+            except Exception as e:
+                out_lines.append(f"// failed to inline {m.group(1)}: {e}")
+        else:
+            out_lines.append(line)
+
+    return "\n".join(out_lines)

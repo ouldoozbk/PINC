@@ -9,12 +9,12 @@ TOKENIZER = AutoTokenizer.from_pretrained(
 # TOKENIZER = tiktoken.get_encoding("gpt2")  # Change this if using another model
 
 
-DEDUPED_FILE = Path("p4_ds_deduped.jsonl")
-OUTPUT_FILE = Path("p4_ds_training_ready.jsonl")
+DEDUPED_FILE = Path("debug/p4_ds_deduped.jsonl")
+OUTPUT_FILE = Path("debug/p4_ds_training_ready.jsonl")
 LINE_THRESHOLD = 20
 
 ALLOWED_LICENSES = {
-    "apache-2.0", "mit", "bsd", "bsd-2-clause", "bsd-3-clause", "cc0-1.0", "wtfpl", "gpl"
+    "apache-2.0", "mit", "bsd", "bsd-2-clause", "bsd-3-clause", "cc0-1.0", "wtfpl", "gpl",
 }
 
 
@@ -39,12 +39,16 @@ def filter_and_save(path: Path, out_path: Path, min_lines: int):
                 continue
 
             version = str(entry.get("p4_version", "")).strip().lower()
-            if "16" not in version:
+            if "16" not in version and "unknown" not in version:
                 skipped_version += 1
                 continue
 
             code = entry.get("cleaned_p4", "")
+            # TODO: BRING THE SHUFFLE LOGIC ELSEWHERE
             if code.strip().count("\n") + 1 < min_lines:
+                continue
+
+            if "tna.p4" in code:
                 continue
 
             p4_path = str(entry.get("p4_file_path", "")).lower()
