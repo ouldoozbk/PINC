@@ -21,6 +21,7 @@ The system is designed to simplify P4 programming by allowing network engineers 
 - Git
 - **Docker** (for P4 code validation)
 - pyang (for YANG model parsing; install with `pip install pyang`)
+- *(Optional but recommended)* A YANG model file (e.g., `network-config.yang`) and a YANG data file (e.g., `config.json`) representing your current network configuration.
 
 ## Setup Instructions
 
@@ -59,7 +60,7 @@ export OPENAI_API_KEY='your-api-key'
 
 ## Usage
 
-**(Optional but recommended)** Place your YANG configuration file (e.g., `network-config.yang`) in the project directory before running the script. The script will detect and use it for context. If no YANG file is found or selected, the script will continue without network configuration context.
+**(Optional but recommended)** Place your YANG model file (e.g., `network-config.yang`) and a YANG data file (e.g., `config.json`) in the project directory before running the script. The script will detect and use them for context. If no YANG file or data file is found or selected, the script will continue without that context.
 
 1. **Run the main script:**
    ```bash
@@ -72,12 +73,31 @@ export OPENAI_API_KEY='your-api-key'
    - "Generate P4 code for a simple router with ACL"
 
 3. **What happens next:**
-   - If a YANG file is present, its structure will be summarized (using pyang) and shown to you before code generation. You will be asked to confirm before proceeding.
-   - If no YANG file is found or selected, the system will proceed without network configuration context (manual JSON input is no longer supported).
-   - The system generates P4 code based on your intent (and YANG context if provided).
+   - If a YANG model file is present, its raw content will be shown to you before code generation. You will be asked to confirm before proceeding.
+   - If a YANG data file (JSON) is present, its content will also be shown and included in the prompt. You will be asked to confirm before proceeding.
+   - The system generates P4 code based on your intent, the YANG model, and the YANG data (if provided).
    - The code is validated using the official p4c Docker image (no local p4c install needed).
    - All validation is performed in Docker, so it works on any OS with Docker.
    - Results and errors are saved to output files.
+
+## Example YANG Data File (config.json)
+
+```
+{
+  "interfaces": {
+    "interface": [
+      { "name": "port1", "action": "forward" },
+      { "name": "port2", "action": "drop" }
+    ]
+  },
+  "firewall": {
+    "rule": [
+      { "id": 1, "port": 80, "action": "allow" },
+      { "id": 2, "port": 22, "action": "deny" }
+    ]
+  }
+}
+```
 
 ## Output Files
 
@@ -106,8 +126,3 @@ export OPENAI_API_KEY='your-api-key'
 ### Cleanup
 
 Every time you run the Python script, all unwanted files will be deleted to avoid any conflicts.
-
-## Contact
-
-For questions or issues, please open an issue in the GitHub repository or email kunwardeepsingh00@gmail.com.
-

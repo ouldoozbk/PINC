@@ -1,0 +1,28 @@
+{
+    "interfaces": {
+      "interface": [
+        {
+          "name": "port1",
+          "action": "forward"
+        },
+        {
+          "name": "port2",
+          "action": "drop"
+        }
+      ]
+    },
+    "firewall": {
+      "rule": [
+        {
+          "id": 1,
+          "port": 80,
+          "action": "allow"
+        },
+        {
+          "id": 2,
+          "port": 22,
+          "action": "deny"
+        }
+      ]
+    }
+  }

@@ -11,15 +11,15 @@ def cleanup_files():
     """Clean up all P4 and error-related files before starting."""
     # Files to remove
     patterns = [
-        "*.p4",      # All P4 files
-        "*.p4i",     # P4 intermediate files
-        "*.json",    # JSON configuration files
-        "validation_status.txt",
-        "error_summary.txt",
-        "p4_validation_errors.txt",
-        "temp_errors.txt",
-        "detailed_prompt.txt"  # Remove the detailed prompt file
-    ]
+       "*.p4",
+       "*.p4i",
+       "test.json",    # JSON configuration files
+       "validation_status.txt",
+       "error_summary.txt",
+       "p4_validation_errors.txt",
+       "temp_errors.txt",
+       "detailed_prompt.txt"
+   ]
     
     print("\nCleaning up previous files...")
     for pattern in patterns:
@@ -36,8 +36,8 @@ def get_user_intent():
     print("\nPlease provide your network intent here, please try to be as specific as possible (e.g., 'Create a P4 program for basic packet forwarding'):")
     return input("> ").strip() #Getting the user's intent
 
-def get_yang_config():
-    """Get YANG configuration from file or user input (optional)"""
+def get_yang_model():
+    """Get YANG model (schema) from file or user input (optional)"""
     import shutil
     # First, check if there's a YANG file in the current directory
     yang_files = glob.glob("*.yang")
@@ -81,39 +81,7 @@ def get_yang_config():
                 print(f"Error: {e}")
                 print("Exiting.")
                 exit(1)
-            # Try to use pyang to convert to tree format
-            try:
-                if not shutil.which("pyang"):
-                    raise FileNotFoundError("pyang not found in PATH. Please install it with 'pip install pyang' or your package manager.")
-                result = subprocess.run([
-                    'pyang', '-f', 'tree', yang_file
-                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                readable_config = result.stdout
-                print(f"Successfully loaded YANG configuration from {yang_file}")
-                print("\n" + "="*60)
-                print("📋 YANG CONFIGURATION (pyang -f tree output)")
-                print("="*60)
-                print(readable_config)
-                print("="*60)
-                print("\n📝 This configuration will be included in the prompt to help the LLM:")
-                print("   • Understand your network structure (interfaces, firewall rules)")
-                print("   • Know available actions (forward, drop, allow, deny)")
-                print("   • Respect port ranges and naming conventions")
-                print("   • Generate P4 code that works with your setup")
-                print("\nDo you want to proceed with this configuration? (y/n):")
-                proceed = input("> ").strip().lower()
-                if proceed in ['y', 'yes']:
-                    return readable_config
-                else:
-                    print("Configuration rejected. Continuing without YANG configuration.")
-                    return None
-            except FileNotFoundError as e:
-                print(f"Error: {e}")
-                print("Falling back to showing raw YANG content...")
-            except subprocess.CalledProcessError as e:
-                print(f"Error running pyang: {e.stderr}")
-                print("Falling back to showing raw YANG content...")
-            # If pyang fails, show raw YANG content
+            # Instead of pyang -f tree, just read and display the raw YANG file content
             try:
                 with open(yang_file, 'r') as f:
                     yang_content = f.read()
@@ -136,34 +104,81 @@ def get_yang_config():
     print("\nNo YANG configuration file found or selected.")
     return None
 
+#getting the actual yang data/current configuration
+def get_yang_data(yang_model_file=None):
+    """Get YANG data (JSON) from file if available."""
+    json_files = glob.glob("*.json")
+    if json_files:
+        print(f"\nFound JSON config file(s): {', '.join(json_files)}")
+        print("Do you want to use a JSON config file for current network data? (y/n):")
+        choice = input("> ").strip().lower()
+        if choice in ['y', 'yes']:
+            if len(json_files) == 1:
+                json_file = json_files[0]
+            else:
+                print("\nMultiple JSON files found. Please select one:")
+                for i, file in enumerate(json_files, 1):
+                    print(f"{i}. {file}")
+                while True:
+                    try:
+                        selection = int(input("Enter number: ").strip())
+                        if 1 <= selection <= len(json_files):
+                            json_file = json_files[selection - 1]
+                            break
+                        else:
+                            print("Invalid selection. Please try again.")
+                    except ValueError:
+                        print("Please enter a valid number.")
+            try:
+                with open(json_file, 'r') as f:
+                    yang_data = f.read()
+                print("\n" + "="*60)
+                print("📋 YANG DATA (JSON)")
+                print("="*60)
+                print(yang_data)
+                print("="*60)
+                print("\nDo you want to proceed with this data? (y/n):")
+                proceed = input("> ").strip().lower()
+                if proceed in ['y', 'yes']:
+                    return yang_data
+                else:
+                    print("Data rejected. Continuing without YANG data.")
+                    return None
+            except Exception as e:
+                print(f"Error reading JSON file {json_file}: {e}")
+    print("\nNo YANG data file found or selected.")
+    return None
+
+
 # Making a function that uses the user's intent to create a detailed prompt for the LLM
-def create_detailed_prompt(intent, yang_config=None, error_feedback=None):
+def create_detailed_prompt(intent, yang_model=None, yang_data=None, error_feedback=None):
     base_prompt = f"""Generate P4-16 code that implements the following network intent: {intent}"""
 
-    # Add YANG configuration if provided
-    if yang_config:
-        # Check if it's already in human-readable format (contains emojis and structured format)
-        if "📋 Configuration Module:" in yang_config or "=== NETWORK CONFIGURATION SUMMARY ===" in yang_config:
-            # Already converted to human-readable format
-            formatted_config = yang_config
-            config_type = "Human-Readable YANG"
-        else:
-            # Treat as YANG (either pyang output or raw YANG)
-            formatted_config = yang_config
-            config_type = "YANG"
-        
+    # Add YANG model (schema)
+    if yang_model:
         base_prompt += f"""
 
-Current Network Configuration ({config_type}):
-{formatted_config}
+YANG Model (Schema):
+--------------------
+{yang_model}
+"""
+
+    # Add YANG data (actual config)
+    if yang_data:
+        base_prompt += f"""
+
+YANG Data (Current Configuration):
+---------------------------------
+{yang_data}
+"""
+
+    base_prompt += f"""
 
 Please generate P4 code that:
 1. Implements the user's intent: "{intent}"
 2. Works with the current network configuration
 3. Respects existing interface and firewall rules
-4. Avoids conflicts with current setup"""
-
-    base_prompt += f"""
+4. Avoids conflicts with current setup
 
 IMPORTANT: Start your response with the P4 code directly. Do not include any text, explanations, or markdown formatting before the code.
 
@@ -190,6 +205,20 @@ The code must be compatible with the v1model.p4 architecture and follow P4_16 sy
    V1Switch(MyParser(), MyVerifyChecksum(), MyIngress(), MyEgress(), MyComputeChecksum(), MyDeparser()) main;
 
 The code should be complete, properly structured, and ready to compile with p4c."""
+
+    # Add the example at the end of the prompt
+    try:
+        with open('example_case.txt', 'r') as f:
+            example_case = f.read()
+        base_prompt += f"""
+
+Here is an example mapping of intent, configuration, and P4 code for your reference:
+{example_case}
+
+Please use this as a guide for style, structure, and how to map intent and configuration to P4 code.
+"""
+    except FileNotFoundError:
+        pass  # No example provided
 
     if error_feedback:
         base_prompt += f"\n\nHere is the complete history of validation errors from previous attempts. Please analyze these errors carefully and ensure the new code addresses ALL of these issues:\n{error_feedback}\n\nGenerate a corrected version that addresses all these issues and does not repeat any of the previous errors. Remember to start with the code directly, no text before it."
@@ -312,8 +341,21 @@ def main():
     # Get user intent
     intent = get_user_intent()
     
-    # Get YANG configuration (optional)
-    yang_config = get_yang_config()
+    # Get YANG model (schema) and YANG data (actual config)
+    yang_model = None
+    yang_model_file = None
+    yang_files = glob.glob("*.yang")
+    if yang_files:
+        yang_model = get_yang_model()
+        # Determine which file was selected
+        if yang_model:
+            # Try to find the selected file by matching content
+            for f in yang_files:
+                with open(f, 'r') as file:
+                    if file.read() == yang_model:
+                        yang_model_file = f
+                        break
+    yang_data = get_yang_data(yang_model_file)
     
     # Maximum number of validation attempts
     max_attempts = 10
@@ -325,8 +367,8 @@ def main():
         print(f"\nAttempt {attempt} of {max_attempts}")
         
         if attempt == 1:
-            # First attempt: use original intent with YANG config
-            prompt = create_detailed_prompt(intent, yang_config)
+            # First attempt: use original intent with YANG model and data
+            prompt = create_detailed_prompt(intent, yang_model, yang_data)
             # Save the detailed prompt to a file for user visibility
             with open("detailed_prompt.txt", "w") as f:
                 f.write(prompt)
