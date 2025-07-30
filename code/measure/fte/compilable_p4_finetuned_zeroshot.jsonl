@@ -1,0 +1,18 @@
+{
+  "instruction": "Implement a simple Ethernet packet parser and ingress processor that modifies packet headers based on a conditional check.",
+  "generated_code": "#include <core.p4>\n#include <v1model.p4>\n\ntypedef bit<9>  egressSpec_t;\ntypedef bit<48> macAddr_t;\ntypedef bit<32> ip4Addr_t;\n\nheader ethernet_t {\n    macAddr_t dstAddr;\n    macAddr_t srcAddr;\n    bit<16>   etherType;\n}\n\nheader ipv4_t {\n    bit<4>    version;\n    bit<4>    ihl;\n    bit<8>    diffserv;\n    bit<16>   totalLen;\n    bit<16>   identification;\n    bit<3>    flags;\n    bit<13>   fragOffset;\n    bit<8>    ttl;\n    bit<8>    protocol;\n    bit<16>   hdrChecksum;\n    ip4Addr_t srcAddr;\n    ip4Addr_t dstAddr;\n}\n\nstruct metadata {}\n\nstruct headers {\n    ethernet_t  ethernet;\n    ipv4_t      ipv4;\n}\n\nparser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t stdmeta) {\n    state start {\n        transition parse_ethernet;\n    }\n    state parse_ethernet {\n        packet.extract(hdr.ethernet);\n        transition select(hdr.ethernet.etherType) {\n            16w0x800 : parse_ipv4;\n            default : accept;\n        }\n    }\n    state parse_ipv4 {\n        packet.extract(hdr.ipv4);\n        transition accept;\n    }\n}\n\ncontrol MyVerifyChecksum(inout headers hdr, inout metadata meta) {\n    apply {  }\n}\n\ncontrol MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t stdmeta) {\n    action drop() {\n        mark_to_drop(stdmeta);\n    }\n    action set_dst_mac(macAddr_t addr) {\n        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;\n        hdr.ethernet.dstAddr = addr;\n    }\n    table t_set_dst_mac {\n        key = {\n            hdr.ipv4.dstAddr: exact;\n        }\n        actions = {\n            set_dst_mac;\n            drop;\n        }\n        size = 1024;\n        default_action = drop();\n    }\n    apply {\n        if (hdr.ipv4.isValid()) {\n            t_set_dst_mac.apply();\n        } else {\n            drop();\n        }\n    }\n}\n\ncontrol MyEgress(inout headers hdr, inout metadata meta, inout standard_metadata_t stdmeta) {\n    apply {  }\n}\n\ncontrol MyComputeChecksum(inout headers hdr, inout metadata meta) {\n    apply {\n        update_checksum(\n            hdr.ipv4.isValid(),\n            { hdr.ipv4.version,\n              hdr.ipv4.ihl,\n              hdr.ipv4.diffserv,\n              hdr.ipv4.totalLen,\n              hdr.ipv4.identification,\n              hdr.ipv4.flags,\n              hdr.ipv4.fragOffset,\n              hdr.ipv4.ttl,\n              hdr.ipv4.protocol,\n              hdr.ipv4.srcAddr,\n              hdr.ipv4.dstAddr },\n            hdr.ipv4.hdrChecksum,\n            HashAlgorithm.csum16);\n    }\n}\n\ncontrol MyDeparser(packet_out packet, in headers hdr) {\n    apply {\n        packet.emit(hdr.ethernet);\n        packet.emit(hdr.ipv4);\n    }\n}\n\nV1Switch(MyParser(),\n         MyVerifyChecksum(),\n         MyIngress(),\n         MyEgress(),\n         MyComputeChecksum(),\n         MyDeparser()) main;",
+  "compilation_result": {
+    "ok": true,
+    "exit_code": 0,
+    "sha256": "c57f301165cd2989acfe20417b3c96ecfeaf9d131d8b98b600faa3ee6f0d50b2",
+    "duration_ms": 769,
+    "meta": {
+      "status": "ok",
+      "sha256": "c57f301165cd2989acfe20417b3c96ecfeaf9d131d8b98b600faa3ee6f0d50b2",
+      "duration_ms": 478,
+      "exit_code": 0
+    },
+    "compiler_stdout": "",
+    "compiler_stderr": "/workspace/input.p4(4): [--Wwarn=unused] warning: 'egressSpec_t' is unused\ntypedef bit<9> egressSpec_t;\n               ^^^^^^^^^^^^"
+  }
+}
