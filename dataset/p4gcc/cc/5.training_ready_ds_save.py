@@ -9,8 +9,8 @@ TOKENIZER = AutoTokenizer.from_pretrained(
 # TOKENIZER = tiktoken.get_encoding("gpt2")  # Change this if using another model
 
 
-DEDUPED_FILE = Path("debug/p4_ds_deduped.jsonl")
-OUTPUT_FILE = Path("debug/p4_ds_training_ready.jsonl")
+DEDUPED_FILE = Path("p4_ds_deduped.jsonl")
+OUTPUT_FILE = Path("p4_ds_training_ready.jsonl")
 LINE_THRESHOLD = 20
 
 ALLOWED_LICENSES = {

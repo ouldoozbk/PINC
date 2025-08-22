@@ -3,8 +3,8 @@ from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 import json
 
-RAW_ROOT = Path("raw-repos")
-OUTPUT_FILE = Path("debug/indexed_p4_files.json")
+RAW_ROOT = Path("raw-repositories")
+OUTPUT_FILE = Path("indexed_p4_files.json")
 
 README_NAMES = {"readme", "readme.md", "readme.txt"}
 LICENSE_NAMES = {"LICENSE", "license", "LICENSE.txt", "COPYING", "COPYRIGHT"}

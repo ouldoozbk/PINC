@@ -6,9 +6,9 @@ from collections import defaultdict
 from utils import normalize_for_deduplication
 
 # Configurable paths
-INPUT_FILE = Path("debug/p4_ds.jsonl")
-DEDUPED_OUTPUT_FILE = Path("debug/p4_ds_deduped.jsonl")
-DUPLICATE_LOG_FILE = Path("debug/duplicates_log.json")
+INPUT_FILE = Path("p4_ds.jsonl")
+DEDUPED_OUTPUT_FILE = Path("p4_ds_deduped.jsonl")
+DUPLICATE_LOG_FILE = Path("duplicates_log.json")
 
 # SimHash + deduplication config
 SHINGLE_N = 4

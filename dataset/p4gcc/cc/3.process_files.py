@@ -5,8 +5,8 @@ import json
 from utils import process_p4_file, detect_license, inline_local_includes
 import re
 
-RAW_ROOT = Path("raw-repos")
-INPUT_FILE = Path("debug/indexed_p4_files.json")
+RAW_ROOT = Path("raw-repositories")
+INPUT_FILE = Path("indexed_p4_files.json")
 OUTPUT_FILE = Path("p4_ds.json")
 # INPUT_FILE = Path("debug/dependency_resolution/in.json")
 # OUTPUT_FILE = Path("debug/dependency_resolution/p4_dsddddd.json")

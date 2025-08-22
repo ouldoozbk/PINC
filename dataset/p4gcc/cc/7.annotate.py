@@ -5,8 +5,8 @@ from tqdm import tqdm
 from datasets import load_dataset
 
 API_KEY = "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"
-# MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
-MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
+# MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 MAX_CHARS = 100000
 
@@ -20,7 +20,7 @@ def build_prompt(cleaned_p4):
     prompt = f"""
     You are an expert in the P4 programming language. Given a compilable P4 program, summarize its behavior at two levels of abstraction for use in a code generation dataset:
 
-    1. A single high-level task description enclosed in <DESC>...</DESC>. This should state the program’s main purpose in 25 words or fewer, starting with a verb like “Implement”, “Create”, or “Design”. Be concise and avoid vague phrases like “modify headers” or “specific logic”.
+    1. A single high-level task description enclosed in <DESC>...</DESC>. This should state the program’s main purpose in 25 words or fewer. Be concise and avoid vague phrases like “modify headers” or “specific logic”.
 
     2. A list of important technical details about the implementation, enclosed in <DETAILS>...</DETAILS>. Each bullet should describe one non-trivial mechanism or behavior used by the program, such as protocol-specific parsing, state tracking, checksum computation, or packet transformation. Use 3–6 bullet points. Do not include obvious boilerplate.
 
@@ -75,6 +75,8 @@ def annotate(example):
 
 def main():
     ds = load_dataset("json", data_files="p4_ds_training_ready_comp_flag.jsonl")["train"]
+    ds = ds.filter(lambda example: example["compiles"], num_proc=os.cpu_count())
+
     annotated_ds = ds.map(annotate, num_proc=1)
     annotated_ds.to_json("FINAL_p4_ds.jsonl")
 
