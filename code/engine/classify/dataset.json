@@ -1,0 +1,958 @@
+{"text": "Create a GRE tunnel that encapsulates IPv4 packets with an additional 24-byte header", "label": "basic_tunnel"}
+{"text": "Implement VXLAN encapsulation for connecting virtual machines across data centers", "label": "basic_tunnel"}
+{"text": "Design a tunnel that removes the outer IP header on decapsulation at the tunnel endpoint", "label": "basic_tunnel"}
+{"text": "Build a tunneling mechanism that adds a 20-byte MPLS header to incoming Ethernet frames", "label": "basic_tunnel"}
+{"text": "Develop tunnel decapsulation logic that strips outer headers from received packets", "label": "basic_tunnel"}
+{"text": "Create an overlay network using IP-in-IP encapsulation between two edge routers", "label": "basic_tunnel"}
+{"text": "Implement header insertion for GRE tunneling with configurable tunnel IDs", "label": "basic_tunnel"}
+{"text": "Design a point-to-point tunnel with 32-bit tunnel identifiers in the outer header", "label": "basic_tunnel"}
+{"text": "Build a tunnel endpoint that encapsulates packets with custom protocol headers", "label": "basic_tunnel"}
+{"text": "Create a VXLAN tunnel between two virtual switches for Layer 2 connectivity", "label": "basic_tunnel"}
+{"text": "Implement tunnel header removal when packets exit the tunnel at the remote end", "label": "basic_tunnel"}
+{"text": "Design encapsulation that preserves inner packet headers during tunnel traversal", "label": "basic_tunnel"}
+{"text": "Build a bidirectional tunnel supporting both encapsulation and decapsulation operations", "label": "basic_tunnel"}
+{"text": "Create IPsec tunnel mode encapsulation with ESP headers for secure communication", "label": "basic_tunnel"}
+{"text": "Implement MPLS label stacking for multi-level tunnel hierarchies", "label": "basic_tunnel"}
+{"text": "Design a tunnel that adds outer IPv6 headers to encapsulate IPv4 traffic", "label": "basic_tunnel"}
+{"text": "Build tunnel egress logic that validates and removes encapsulation headers", "label": "basic_tunnel"}
+{"text": "Create a simple encapsulation protocol with 16-byte fixed headers", "label": "basic_tunnel"}
+{"text": "Implement Layer 2 tunneling protocol (L2TP) for virtual private networks", "label": "basic_tunnel"}
+{"text": "Design tunnel ingress that checks maximum transmission unit before encapsulation", "label": "basic_tunnel"}
+{"text": "Configure a GTP tunnel for carrying mobile user plane traffic", "label": "basic_tunnel"}
+{"text": "Set up a stateless tunnel that encapsulates traffic based on a 5-tuple match", "label": "basic_tunnel"}
+{"text": "Decapsulate GENEVE packets and forward the inner frame to a local interface", "label": "basic_tunnel"}
+{"text": "Encapsulate Ethernet frames within an MPLS pseudowire for L2 VPN services", "label": "basic_tunnel"}
+{"text": "Build a tunnel that adds a VLAN tag upon encapsulation", "label": "basic_tunnel"}
+{"text": "Strip the outer IPv6 header from incoming tunneled packets", "label": "basic_tunnel"}
+{"text": "Configure a tunnel endpoint to handle fragmented incoming packets before decapsulation", "label": "basic_tunnel"}
+{"text": "Create a tunnel that maps traffic from multiple VLANs into a single VXLAN VNI", "label": "basic_tunnel"}
+{"text": "Implement a decapsulation rule that drops packets with an invalid tunnel ID", "label": "basic_tunnel"}
+{"text": "Design a tunnel that copies the DSCP value from the inner IP header to the outer header", "label": "basic_tunnel"}
+{"text": "Set up an L2TPv3 tunnel to extend a Layer 2 broadcast domain.", "label": "basic_tunnel"}
+{"text": "Configure NVGRE encapsulation for multi-tenant cloud environments.", "label": "basic_tunnel"}
+{"text": "Implement a tunnel that copies the ECN bits from inner to outer IP headers.", "label": "basic_tunnel"}
+{"text": "Establish a secure overlay network between two sites.", "label": "basic_tunnel"}
+{"text": "Decapsulate incoming VXLAN packets with VNI 12345.", "label": "basic_tunnel"}
+{"text": "Create a tunnel interface 'tun0' for GRE traffic.", "label": "basic_tunnel"}
+{"text": "Encapsulate all traffic from subnet 192.168.1.0/24 into an IP-in-IP tunnel.", "label": "basic_tunnel"}
+{"text": "Define a GENEVE tunnel with variable-length options.", "label": "basic_tunnel"}
+{"text": "Build the encapsulation logic for a proprietary tunneling protocol.", "label": "basic_tunnel"}
+{"text": "Ensure proper MTU and MSS clamping for all tunneled traffic.", "label": "basic_tunnel"}
+{"text": "Handle tunnel keepalives to detect path failures.", "label": "basic_tunnel"}
+{"text": "Strip the GRE header from packets arriving at the tunnel destination.", "label": "basic_tunnel"}
+{"text": "Bridge two remote LAN segments using a tunnel.", "label": "basic_tunnel"}
+{"text": "Configure a VXLAN network identifier (VNI) for tenant separation.", "label": "basic_tunnel"}
+{"text": "Implement decapsulation logic that validates the tunnel key.", "label": "basic_tunnel"}
+{"text": "Set up an IPv6-in-IPv4 tunnel for transition.", "label": "basic_tunnel"}
+{"text": "Create encapsulation rules based on ingress port.", "label": "basic_tunnel"}
+{"text": "Handle path MTU discovery for tunneled connections.", "label": "basic_tunnel"}
+{"text": "Forward decapsulated traffic to a specific VRF.", "label": "basic_tunnel"}
+{"text": "Design a system to encapsulate traffic for service chaining.", "label": "basic_tunnel"}
+{"text": "Map an incoming MPLS label to a new GRE tunnel.", "label": "basic_tunnel"}
+{"text": "Decapsulate and inspect traffic before forwarding.", "label": "basic_tunnel"}
+{"text": "Establish a virtual link between two non-adjacent routers.", "label": "basic_tunnel"}
+{"text": "Implement a tunnel broker for automated tunnel provisioning.", "label": "basic_tunnel"}
+{"text": "Configure a tunnel to carry multicast traffic.", "label": "basic_tunnel"}
+{"text": "Build a decapsulation pipeline stage.", "label": "basic_tunnel"}
+{"text": "Route traffic over a dynamically created tunnel.", "label": "basic_tunnel"}
+{"text": "Define the outer header format for a new tunnel type.", "label": "basic_tunnel"}
+{"text": "Ensure inner packet QoS markings are preserved across the tunnel.", "label": "basic_tunnel"}
+{"text": "Set up a tunnel for network traffic mirroring.", "label": "basic_tunnel"}
+{"text": "Translate inner VLAN tags during VXLAN encapsulation.", "label": "basic_tunnel"}
+{"text": "Implement a tunnel concentrator for multiple remote sites.", "label": "basic_tunnel"}
+{"text": "Create a secure tunnel using IPsec in transport mode over GRE.", "label": "basic_tunnel"}
+{"text": "Encapsulate traffic destined for a specific application into a dedicated tunnel.", "label": "basic_tunnel"}
+{"text": "Build logic to select one of several available tunnels based on latency.", "label": "basic_tunnel"}
+{"text": "Abstract the physical network by creating a logical overlay.", "label": "basic_tunnel"}
+{"text": "Set up a tunnel to bypass a restrictive firewall.", "label": "basic_tunnel"}
+{"text": "Implement stateless NAT traversal using UDP encapsulation.", "label": "basic_tunnel"}
+{"text": "Create a tunnel that fragments oversized packets before encapsulation.", "label": "basic_tunnel"}
+{"text": "Design a decapsulation engine that supports multiple tunnel types.", "label": "basic_tunnel"}
+{"text": "Connect our branch offices to the main datacenter.", "label": "basic_tunnel"}
+{"text": "Encapsulate packets with a 64-bit VNI for a large-scale VXLAN fabric.", "label": "basic_tunnel"}
+{"text": "Decapsulate L2TP frames and extract PPP information.", "label": "basic_tunnel"}
+{"text": "Set the Don't Fragment (DF) bit in the outer IP header of tunneled packets.", "label": "basic_tunnel"}
+{"text": "Establish a virtual private wire service (VPWS) between two customer sites.", "label": "basic_tunnel"}
+{"text": "Implement GENEVE encapsulation with a critical option set.", "label": "basic_tunnel"}
+{"text": "Provide Layer 2 adjacency for non-routable protocols.", "label": "basic_tunnel"}
+{"text": "Build a mechanism to encapsulate traffic for lawful interception.", "label": "basic_tunnel"}
+{"text": "Create a tunnel that adds an authentication header.", "label": "basic_tunnel"}
+{"text": "Design the ingress node of a network virtualization overlay.", "label": "basic_tunnel"}
+{"text": "Validate the GRE protocol type before decapsulating the inner packet.", "label": "basic_tunnel"}
+{"text": "Link two IPv6 islands across an IPv4-only network.", "label": "basic_tunnel"}
+{"text": "Implement a tunnel that prepends a shim header before the IP header.", "label": "basic_tunnel"}
+{"text": "Set up an automatic multicast tunnel (AMT) for multicast forwarding.", "label": "basic_tunnel"}
+{"text": "Encapsulate IoT device traffic into a lightweight tunnel for aggregation.", "label": "basic_tunnel"}
+{"text": "Handle VXLAN-GPE (Generic Protocol Extension) packets.", "label": "basic_tunnel"}
+{"text": "Configure the tunnel source and destination IP addresses.", "label": "basic_tunnel"}
+{"text": "Define a tunnel profile for mobile backhaul.", "label": "basic_tunnel"}
+{"text": "Decapsulate the packet and send it to the CPU for slow-path processing.", "label": "basic_tunnel"}
+{"text": "Ensure seamless virtual machine mobility across racks.", "label": "basic_tunnel"}
+{"text": "Create an encapsulation action in a P4 program.", "label": "basic_tunnel"}
+{"text": "Set up a Virtual Extensible LAN.", "label": "basic_tunnel"}
+{"text": "Construct the outer IP and UDP headers for a VXLAN packet.", "label": "basic_tunnel"}
+{"text": "Extend VLANs between two physically separate buildings.", "label": "basic_tunnel"}
+{"text": "Implement a tunnel for ERSPAN traffic mirroring.", "label": "basic_tunnel"}
+{"text": "Recalculate TCP checksum after NAT address modification", "label": "calc"}
+{"text": "Compute incremental checksum update when TTL field is decremented", "label": "calc"}
+{"text": "Calculate IPv4 header checksum using one's complement addition", "label": "calc"}
+{"text": "Verify UDP checksum matches computed value or drop packet", "label": "calc"}
+{"text": "Compute pseudo-header checksum for TCP over IPv6", "label": "calc"}
+{"text": "Calculate CRC32 for the Ethernet frame check sequence", "label": "calc"}
+{"text": "Recompute checksum after IP fragmentation modifies header fields", "label": "calc"}
+{"text": "Validate the ICMP checksum covering the entire message payload", "label": "calc"}
+{"text": "Calculate checksum for both inner and outer headers in VXLAN", "label": "calc"}
+{"text": "Implement checksum-neutral NAT to preserve end-to-end integrity", "label": "calc"}
+{"text": "Compute the IPv4 header checksum for outgoing packets before transmission", "label": "calc"}
+{"text": "Validate the TCP checksum in received segments to detect corruption", "label": "calc"}
+{"text": "Calculate and verify UDP checksums for both IPv4 and IPv6 packets", "label": "calc"}
+{"text": "Implement checksum computation for ICMP echo request and reply messages", "label": "calc"}
+{"text": "Generate a CRC32 digest for frame integrity checking at Layer 2", "label": "calc"}
+{"text": "Verify the integrity of IP headers using 16-bit one's complement checksums", "label": "calc"}
+{"text": "Compute checksums for both inner and outer IP headers in tunneled packets", "label": "calc"}
+{"text": "Implement incremental checksum updates when modifying packet headers", "label": "calc"}
+{"text": "Calculate hash values for flow identification using 5-tuple hashing", "label": "calc"}
+{"text": "Validate header fields with TCP checksum verification on packet reception", "label": "calc"}
+{"text": "Compute IPv6 pseudo-header checksums for upper layer protocols", "label": "calc"}
+{"text": "Generate MD5 hash digests for packet authentication in custom protocols", "label": "calc"}
+{"text": "Implement checksum offload by marking packets for hardware calculation", "label": "calc"}
+{"text": "Validate ICMP checksums and drop malformed packets at ingress", "label": "calc"}
+{"text": "Calculate running checksums while parsing variable-length option fields", "label": "calc"}
+{"text": "Compute Fletcher's checksum for enhanced error detection capabilities", "label": "calc"}
+{"text": "Verify UDP-Lite partial checksums covering only critical header fields", "label": "calc"}
+{"text": "Generate cryptographic hashes for packet fingerprinting and identification", "label": "calc"}
+{"text": "Implement efficient checksum recalculation after NAT address translation", "label": "calc"}
+{"text": "Calculate SCTP checksums using the CRC32c algorithm for reliable delivery", "label": "calc"}
+{"text": "Ensure packet integrity.", "label": "calc"}
+{"text": "Detect data corruption during transit.", "label": "calc"}
+{"text": "Perform a hash calculation to select an ECMP path.", "label": "calc"}
+{"text": "Compute the CRC16 hash of the source and destination MAC addresses.", "label": "calc"}
+{"text": "Update the IP header checksum after decrementing the TTL value.", "label": "calc"}
+{"text": "If the UDP checksum field is zero, skip the validation.", "label": "calc"}
+{"text": "Calculate the TOE (TCP Offload Engine) checksum.", "label": "calc"}
+{"text": "Verify the integrity of this packet.", "label": "calc"}
+{"text": "Compute a hash over the packet's 5-tuple for load balancing.", "label": "calc"}
+{"text": "Recalculate the checksum for a modified packet header.", "label": "calc"}
+{"text": "Implement an incremental checksum update function.", "label": "calc"}
+{"text": "Validate the checksum of an arriving GRE packet.", "label": "calc"}
+{"text": "Generate a hash for a new flow to be stored in a flow table.", "label": "calc"}
+{"text": "The checksum needs to be fixed before the packet is sent out.", "label": "calc"}
+{"text": "Calculate the BGP message checksum.", "label": "calc"}
+{"text": "Perform a CRC check on the payload.", "label": "calc"}
+{"text": "Compute a hash to choose which firewall instance will process the packet.", "label": "calc"}
+{"text": "Update the L4 checksum after performing NAT.", "label": "calc"}
+{"text": "Verify the OSPF LSA checksum.", "label": "calc"}
+{"text": "Make sure all outgoing packets have a valid checksum.", "label": "calc"}
+{"text": "Implement a function to calculate a 16-bit one's complement sum.", "label": "calc"}
+{"text": "Generate a Jenkins hash of the packet's flow keys.", "label": "calc"}
+{"text": "Check if the packet has been corrupted.", "label": "calc"}
+{"text": "Calculate the ICMPv6 checksum including the pseudo-header.", "label": "calc"}
+{"text": "Update the checksum field in the IP header.", "label": "calc"}
+{"text": "Generate a SHA-1 hash for an IPsec authentication header.", "label": "calc"}
+{"text": "If the checksum is wrong, drop the packet.", "label": "calc"}
+{"text": "Compute the checksum on the packet header.", "label": "calc"}
+{"text": "Verify the integrity of Layer 3 headers.", "label": "calc"}
+{"text": "Implement a checksum verification stage in the ingress pipeline.", "label": "calc"}
+{"text": "Fix the TCP checksum after modifying the payload.", "label": "calc"}
+{"text": "Calculate a hash for link aggregation group (LAG) member selection.", "label": "calc"}
+{"text": "Validate that the received frame is not damaged.", "label": "calc"}
+{"text": "Recompute the outer header checksum for a tunneled packet.", "label": "calc"}
+{"text": "Generate a hash to index into a large state table.", "label": "calc"}
+{"text": "Implement the standard RFC 1071 checksum algorithm.", "label": "calc"}
+{"text": "Verify the checksum of IGMP messages.", "label": "calc"}
+{"text": "The checksum computation should be offloaded to hardware.", "label": "calc"}
+{"text": "Compute the CRC32c hash for an SCTP chunk.", "label": "calc"}
+{"text": "After changing the IP source address, the checksum must be recomputed.", "label": "calc"}
+{"text": "Validate the integrity of the TCP segment.", "label": "calc"}
+{"text": "Calculate a hash on the inner packet headers for consistent load balancing.", "label": "calc"}
+{"text": "Implement a fast hashing algorithm like MurmurHash3 for flow lookup.", "label": "calc"}
+{"text": "Check the frame check sequence (FCS) at the physical layer.", "label": "calc"}
+{"text": "The UDP checksum is optional in IPv4, but mandatory in IPv6. Handle both.", "label": "calc"}
+{"text": "Correct the checksum of a packet before forwarding it.", "label": "calc"}
+{"text": "Generate a hash to prevent packet reordering within a flow.", "label": "calc"}
+{"text": "Verify the integrity of all incoming data.", "label": "calc"}
+{"text": "Perform error checking on this packet.", "label": "calc"}
+{"text": "Calculate a hash of the subscriber ID for policy lookup.", "label": "calc"}
+{"text": "Ensure all modified packets leave with a valid checksum.", "label": "calc"}
+{"text": "The packet failed its integrity check.", "label": "calc"}
+{"text": "Implement a routine to verify and recompute IP/TCP/UDP checksums.", "label": "calc"}
+{"text": "Compute a checksum over the IP header fields only.", "label": "calc"}
+{"text": "Generate a hash of the packet's URL for web cache lookup.", "label": "calc"}
+{"text": "Validate the checksum of tunneled packets after decapsulation.", "label": "calc"}
+{"text": "The device must support hardware checksum offloading.", "label": "calc"}
+{"text": "Compute the correct checksum for an IP packet of 150 bytes.", "label": "calc"}
+{"text": "If the TTL is modified, perform an incremental checksum update.", "label": "calc"}
+{"text": "Validate the checksum of DCCP (Datagram Congestion Control Protocol) packets.", "label": "calc"}
+{"text": "Implement Explicit Congestion Notification marking when queue depth exceeds 80%", "label": "ecn"}
+{"text": "Monitor traffic and detect congestion using average queue occupancy measurements", "label": "ecn"}
+{"text": "Create an Active Queue Management mechanism that drops packets based on the RED algorithm", "label": "ecn"}
+{"text": "Detect heavy hitter flows using flow size tracking and threshold-based detection", "label": "ecn"}
+{"text": "Implement packet dropping with tail drop when buffer occupancy reaches maximum", "label": "ecn"}
+{"text": "Monitor queue occupancy and mark ECN bits for congestion-aware transport protocols", "label": "ecn"}
+{"text": "Create a congestion notification system using weighted random early detection", "label": "ecn"}
+{"text": "Implement the PIE algorithm for active queue management with proportional-integral control", "label": "ecn"}
+{"text": "Track flow statistics to identify elephant flows consuming excessive bandwidth", "label": "ecn"}
+{"text": "Monitor and control congestion using ECN marking in IP headers", "label": "ecn"}
+{"text": "Implement CoDel queue management to control bufferbloat and latency", "label": "ecn"}
+{"text": "Detect microbursts and apply probabilistic packet marking for fairness", "label": "ecn"}
+{"text": "Create adaptive RED with dynamic threshold adjustment based on link utilization", "label": "ecn"}
+{"text": "Monitor per-flow packet rates to identify and throttle aggressive senders", "label": "ecn"}
+{"text": "Implement congestion window feedback using ECN echo flags in TCP", "label": "ecn"}
+{"text": "Track queue delay statistics and trigger early congestion signals", "label": "ecn"}
+{"text": "Create flow-aware AQM that applies selective dropping to unresponsive flows", "label": "ecn"}
+{"text": "Implement gradient-based congestion detection using queue delay trends", "label": "ecn"}
+{"text": "Monitor aggregate bandwidth usage and mark packets probabilistically", "label": "ecn"}
+{"text": "Detect SYN flood attacks by tracking half-open connection counts", "label": "ecn"}
+{"text": "Mark packets with Congestion Experienced (CE) codepoint if queue delay is over 20ms", "label": "ecn"}
+{"text": "Configure WRED to drop packets with a higher probability for lower DSCP values", "label": "ecn"}
+{"text": "Implement a packet drop policy for flows that do not respond to ECN signals", "label": "ecn"}
+{"text": "Set an ECN marking threshold based on the rate of change of queue depth", "label": "ecn"}
+{"text": "Apply ECN marking only to best-effort traffic, leaving real-time traffic untouched", "label": "ecn"}
+{"text": "Prevent bufferbloat.", "label": "ecn"}
+{"text": "Signal congestion to the endpoints without dropping packets.", "label": "ecn"}
+{"text": "Set the ECN field to '11' (CE) if the queue is congested.", "label": "ecn"}
+{"text": "Implement Random Early Detection to avoid global synchronization.", "label": "ecn"}
+{"text": "If the average queue length exceeds min_thresh, start marking packets.", "label": "ecn"}
+{"text": "Manage the queue to keep latency low.", "label": "ecn"}
+{"text": "Use an Active Queue Management (AQM) scheme.", "label": "ecn"}
+{"text": "Drop packets early to signal congestion.", "label": "ecn"}
+{"text": "Configure the minimum and maximum thresholds for RED.", "label": "ecn"}
+{"text": "Mark ECN-capable transit (ECT) packets when congestion is detected.", "label": "ecn"}
+{"text": "Implement the CoDel algorithm to control queuing delay.", "label": "ecn"}
+{"text": "Identify and penalize unresponsive, high-bandwidth flows.", "label": "ecn"}
+{"text": "Avoid tail-dropping packets when the buffer is full.", "label": "ecn"}
+{"text": "Notify senders of incipient congestion.", "label": "ecn"}
+{"text": "Set the ECN bits in the IP header to 01 or 10 for ECN-capable traffic.", "label": "ecn"}
+{"text": "If the queue is building up, start dropping packets randomly.", "label": "ecn"}
+{"text": "Implement a PI controller to stabilize queue occupancy around a target value.", "label": "ecn"}
+{"text": "Proactively manage network congestion.", "label": "ecn"}
+{"text": "Set the CE bit instead of dropping the packet.", "label": "ecn"}
+{"text": "Use different WRED profiles for different traffic classes.", "label": "ecn"}
+{"text": "Keep buffer occupancy low.", "label": "ecn"}
+{"text": "Measure the sojourn time of packets in the queue.", "label": "ecn"}
+{"text": "If a packet has been in the queue for too long, drop it.", "label": "ecn"}
+{"text": "Configure the drop probability curve for WRED.", "label": "ecn"}
+{"text": "Don't let the queues get too full.", "label": "ecn"}
+{"text": "Implement DCTCP (Data Center TCP) style ECN marking.", "label": "ecn"}
+{"text": "If the instant queue length exceeds a hard limit, tail drop.", "label": "ecn"}
+{"text": "Mark elephant flows as CE.", "label": "ecn"}
+{"text": "Let the sender know the network path is congested.", "label": "ecn"}
+{"text": "Implement a fair queuing system that also signals congestion.", "label": "ecn"}
+{"text": "Set ECN thresholds based on buffer memory usage.", "label": "ecn"}
+{"text": "Configure a gentle RED profile.", "label": "ecn"}
+{"text": "Mitigate network latency caused by over-buffering.", "label": "ecn"}
+{"text": "When the link is busy, inform the endpoints.", "label": "ecn"}
+{"text": "Handle ECN negotiation during the TCP handshake.", "label": "ecn"}
+{"text": "Implement an AQM policy to improve application responsiveness.", "label": "ecn"}
+{"text": "Apply probabilistic marking based on the calculated average queue size.", "label": "ecn"}
+{"text": "The router should participate in active congestion management.", "label": "ecn"}
+{"text": "Set up a queue discipline that uses ECN.", "label": "ecn"}
+{"text": "If the packet is not ECN-capable, drop it based on the RED policy.", "label": "ecn"}
+{"text": "Configure the weight for the exponential weighted moving average (EWMA) queue length calculation.", "label": "ecn"}
+{"text": "Provide an early warning of congestion.", "label": "ecn"}
+{"text": "Implement a mechanism to control network buffer occupancy.", "label": "ecn"}
+{"text": "Set the Congestion Experienced bit.", "label": "ecn"}
+{"text": "Use the PIE algorithm to auto-tune dropping probability.", "label": "ecn"}
+{"text": "When the queue depth is between the min and max threshold, mark packets with a certain probability.", "label": "ecn"}
+{"text": "Reduce packet loss and retransmissions by using ECN.", "label": "ecn"}
+{"text": "Control latency for interactive applications.", "label": "ecn"}
+{"text": "Implement a fair dropping policy during periods of high traffic.", "label": "ecn"}
+{"text": "The AQM should be able to identify and throttle aggressive TCP flows.", "label": "ecn"}
+{"text": "Set ECN markings on IP headers to signal congestion.", "label": "ecn"}
+{"text": "If a flow is unresponsive to ECN, start dropping its packets.", "label": "ecn"}
+{"text": "The goal is to keep the queue delay below 5ms.", "label": "ecn"}
+{"text": "Implement a BLUE-like algorithm that adjusts marking probability based on link utilization.", "label": "ecn"}
+{"text": "Configure the router to be an active participant in TCP congestion control.", "label": "ecn"}
+{"text": "Mark packets instead of dropping them.", "label": "ecn"}
+{"text": "Set up a system to manage network buffers efficiently.", "label": "ecn"}
+{"text": "Implement a queue management algorithm to provide better QoS.", "label": "ecn"}
+{"text": "When queue length grows, increase the probability of marking a packet.", "label": "ecn"}
+{"text": "The system should signal congestion gracefully.", "label": "ecn"}
+{"text": "Monitor queue stats to preemptively handle congestion.", "label": "ecn"}
+{"text": "Use ECN to improve throughput and reduce latency.", "label": "ecn"}
+{"text": "Implement a congestion control feedback loop.", "label": "ecn"}
+{"text": "Configure queue thresholds for ECN/RED.", "label": "ecn"}
+{"text": "Create a firewall that drops packets from blacklisted source IP addresses", "label": "firewall"}
+{"text": "Implement an access control list that blocks traffic on ports 23, 445, and 3389", "label": "firewall"}
+{"text": "Design a packet filter based on TCP flags to detect SYN flood attacks", "label": "firewall"}
+{"text": "Build a stateless firewall that permits only established TCP connections", "label": "firewall"}
+{"text": "Implement NAT translation for internal private IP addresses to public IPs", "label": "firewall"}
+{"text": "Create a bloom filter-based IP blacklist for efficient malicious source blocking", "label": "firewall"}
+{"text": "Design packet filtering rules that allow ICMP only from trusted management networks", "label": "firewall"}
+{"text": "Implement connection tracking to block unsolicited inbound TCP connection attempts", "label": "firewall"}
+{"text": "Build an ACL that permits only HTTP, HTTPS, and DNS traffic outbound", "label": "firewall"}
+{"text": "Create TLS fingerprinting for identifying malicious encrypted traffic patterns", "label": "firewall"}
+{"text": "Implement geographic IP filtering to block traffic from restricted countries", "label": "firewall"}
+{"text": "Design port knocking authentication before allowing SSH access", "label": "firewall"}
+{"text": "Build a firewall that rate-limits ICMP to prevent ping flood attacks", "label": "firewall"}
+{"text": "Create application-layer filtering for HTTP requests containing SQL injection patterns", "label": "firewall"}
+{"text": "Implement stateful inspection tracking TCP sequence numbers for hijacking prevention", "label": "firewall"}
+{"text": "Design MAC address filtering to restrict network access to authorized devices", "label": "firewall"}
+{"text": "Build a firewall with deep packet inspection for malware signature detection", "label": "firewall"}
+{"text": "Create packet filtering based on time-of-day rules for access control", "label": "firewall"}
+{"text": "Implement a transparent proxy firewall for content filtering and logging", "label": "firewall"}
+{"text": "Design egress filtering to prevent data exfiltration to unauthorized destinations", "label": "firewall"}
+{"text": "Block all incoming traffic destined for UDP port 1900 to prevent SSDP reflection attacks", "label": "firewall"}
+{"text": "Create a rule to log and drop packets with invalid TCP checksums", "label": "firewall"}
+{"text": "Implement an ACL to deny traffic from any source with a reserved Bogon IP address", "label": "firewall"}
+{"text": "Set up a stateful firewall rule that allows FTP data connections only if a control connection exists", "label": "firewall"}
+{"text": "Filter fragmented IP packets to mitigate evasion techniques", "label": "firewall"}
+{"text": "Drop packets that have both the SYN and FIN TCP flags set", "label": "firewall"}
+{"text": "Create a firewall policy that allows outbound DNS queries only to 8.8.8.8 and 1.1.1.1", "label": "firewall"}
+{"text": "Implement a rule to block traffic based on the IP packet's TTL value being less than 5", "label": "firewall"}
+{"text": "Design a firewall to prevent Xmas scan attacks by dropping packets with FIN, PSH, and URG flags set", "label": "firewall"}
+{"text": "Allow inbound SSH traffic only from the 10.1.2.0/24 subnet", "label": "firewall"}
+{"text": "Protect the internal network from outside threats.", "label": "firewall"}
+{"text": "Block malicious traffic.", "label": "firewall"}
+{"text": "Enforce the corporate security policy.", "label": "firewall"}
+{"text": "Deny all traffic by default and only permit what is explicitly allowed.", "label": "firewall"}
+{"text": "Set up an access control entry (ACE) to permit TCP traffic on port 80.", "label": "firewall"}
+{"text": "Drop all packets from source IP 1.2.3.4.", "label": "firewall"}
+{"text": "Create a zone-based firewall policy between the 'trusted' and 'untrusted' zones.", "label": "firewall"}
+{"text": "Log all denied packets for auditing purposes.", "label": "firewall"}
+{"text": "Implement an IP blacklist using an IPSet.", "label": "firewall"}
+{"text": "Prevent IP spoofing by implementing unicast Reverse Path Forwarding (uRPF).", "label": "firewall"}
+{"text": "Allow related/established connections to return.", "label": "firewall"}
+{"text": "Set up a DMZ for public-facing servers.", "label": "firewall"}
+{"text": "Block traffic to non-routable IP addresses (bogon filtering).", "label": "firewall"}
+{"text": "Implement a filter to drop packets with suspicious TCP flag combinations.", "label": "firewall"}
+{"text": "Allow NTP traffic from internal clients to a specific time server.", "label": "firewall"}
+{"text": "Configure a firewall to act as a stateful packet inspector.", "label": "firewall"}
+{"text": "Create a rule to reject traffic with an ICMP message instead of silently dropping it.", "label": "firewall"}
+{"text": "Filter traffic based on its DSCP value.", "label": "firewall"}
+{"text": "Inspect the packet payload for known virus signatures.", "label": "firewall"}
+{"text": "Secure the network perimeter.", "label": "firewall"}
+{"text": "Implement application-level gateway (ALG) for protocols like FTP and SIP.", "label": "firewall"}
+{"text": "Prevent users from accessing social media sites during work hours.", "label": "firewall"}
+{"text": "Create a firewall rule that blocks all traffic from a specific country code.", "label": "firewall"}
+{"text": "Apply a security policy to the WAN interface.", "label": "firewall"}
+{"text": "Block all Telnet access to the network.", "label": "firewall"}
+{"text": "Implement a filter to drop null scan packets (no flags set).", "label": "firewall"}
+{"text": "Only allow whitelisted MAC addresses to access the guest network.", "label": "firewall"}
+{"text": "Set up a personal firewall on the endpoint.", "label": "firewall"}
+{"text": "Deny traffic based on the protocol number in the IP header.", "label": "firewall"}
+{"text": "Create a rule to limit the number of new connections per second from a single source.", "label": "firewall"}
+{"text": "Implement a web application firewall (WAF) to protect against common web exploits.", "label": "firewall"}
+{"text": "Drop packets that are part of a LAND attack (source IP equals destination IP).", "label": "firewall"}
+{"text": "Allow traffic for a specific TCP session.", "label": "firewall"}
+{"text": "Set up a security group in a cloud environment.", "label": "firewall"}
+{"text": "Block BitTorrent traffic.", "label": "firewall"}
+{"text": "Implement a firewall that can parse and filter based on HTTP headers.", "label": "firewall"}
+{"text": "Deny ICMP echo-requests to prevent the host from showing up in network scans.", "label": "firewall"}
+{"text": "Apply a different firewall policy to IPv6 traffic.", "label": "firewall"}
+{"text": "Create a rule to allow IKE on UDP port 500 for VPNs.", "label": "firewall"}
+{"text": "The firewall should inspect the application data.", "label": "firewall"}
+{"text": "Block any attempts to connect to our internal database server from the internet.", "label": "firewall"}
+{"text": "Set up a next-generation firewall (NGFW).", "label": "firewall"}
+{"text": "Implement a policy to drop malformed packets.", "label": "firewall"}
+{"text": "Only permit traffic that is part of an established TCP connection.", "label": "firewall"}
+{"text": "Filter packets based on their length.", "label": "firewall"}
+{"text": "Create a rule that matches on a specific string in the packet payload.", "label": "firewall"}
+{"text": "Allow inbound responses to outbound requests.", "label": "firewall"}
+{"text": "Set up a micro-segmentation policy for east-west traffic.", "label": "firewall"}
+{"text": "Deny all traffic originating from a known botnet command and control server.", "label": "firewall"}
+{"text": "The firewall needs to understand application-level protocols.", "label": "firewall"}
+{"text": "Implement a flow cache that tracks source IP, destination IP, and port numbers", "label": "flowcache"}
+{"text": "Create a flow verification mechanism using counting bloom filters for membership tests", "label": "flowcache"}
+{"text": "Build a state caching system for tracking TCP connection states across packets", "label": "flowcache"}
+{"text": "Track active flow statistics using a hash table with 65536 entries", "label": "flowcache"}
+{"text": "Implement flow state management with LRU eviction policy for cache replacement", "label": "flowcache"}
+{"text": "Cache flow information for fast forwarding decisions without table lookups", "label": "flowcache"}
+{"text": "Verify flow membership using multiple hash functions in a bloom filter", "label": "flowcache"}
+{"text": "Create a flow tracking table that stores packet counts and byte counts per flow", "label": "flowcache"}
+{"text": "Implement connection state caching with timeout-based expiration after 60 seconds", "label": "flowcache"}
+{"text": "Build a flow cache with 10,000 entries for tracking active UDP sessions", "label": "flowcache"}
+{"text": "Create per-flow counters for traffic accounting and billing purposes", "label": "flowcache"}
+{"text": "Implement flow cache invalidation when routing table updates occur", "label": "flowcache"}
+{"text": "Design flow state storage using cuckoo hashing for constant-time lookups", "label": "flowcache"}
+{"text": "Track bidirectional flow statistics including retransmissions and out-of-order packets", "label": "flowcache"}
+{"text": "Implement soft state management with periodic refresh messages for cached flows", "label": "flowcache"}
+{"text": "Create a flow aggregation cache for NetFlow export and traffic analysis", "label": "flowcache"}
+{"text": "Build connection tracking for NAT with separate tables for pre and post translation", "label": "flowcache"}
+{"text": "Implement a flow cache with hardware offload for line-rate performance", "label": "flowcache"}
+{"text": "Design an aging mechanism that removes idle flows after 120 seconds of inactivity", "label": "flowcache"}
+{"text": "Create a hierarchical flow cache with per-interface and global lookup stages", "label": "flowcache"}
+{"text": "Maintain a flow table storing the 5-tuple and last-seen timestamp", "label": "flowcache"}
+{"text": "Implement a connection tracking table for a stateful firewall", "label": "flowcache"}
+{"text": "Cache NAT translation mappings between internal and external addresses", "label": "flowcache"}
+{"text": "Build a flow state table with TCP sequence number tracking", "label": "flowcache"}
+{"text": "Implement a session cache for fast-path forwarding decisions", "label": "flowcache"}
+{"text": "Store per-flow counters in a hash table with 100K entries", "label": "flowcache"}
+{"text": "Cache routing decisions to avoid repeated FIB lookups", "label": "flowcache"}
+{"text": "Implement flow aging, removing entries idle for 60 seconds", "label": "flowcache"}
+{"text": "Build a connection state machine tracking SYN, ACK, and FIN flags", "label": "flowcache"}
+{"text": "Cache IPsec security associations for tunnel endpoints", "label": "flowcache"}
+{"text": "Accelerate forwarding for established connections.", "label": "flowcache"}
+{"text": "Maintain session state for network services.", "label": "flowcache"}
+{"text": "Create a new entry in the connection table for this TCP SYN packet.", "label": "flowcache"}
+{"text": "If a flow entry already exists, forward the packet using the cached action.", "label": "flowcache"}
+{"text": "Expire flow entries that have been inactive for more than five minutes.", "label": "flowcache"}
+{"text": "Use a fast path for known flows and a slow path for new flows.", "label": "flowcache"}
+{"text": "Update the packet and byte counters for the matching flow.", "label": "flowcache"}
+{"text": "Implement a TCP state tracker.", "label": "flowcache"}
+{"text": "The flow cache is full; evict the oldest entry.", "label": "flowcache"}
+{"text": "Store the NAT binding in the connection table.", "label": "flowcache"}
+{"text": "Keep track of all active conversations.", "label": "flowcache"}
+{"text": "When a TCP FIN is seen, mark the flow for teardown.", "label": "flowcache"}
+{"text": "Implement a session table with a capacity of 1 million entries.", "label": "flowcache"}
+{"text": "If there's a cache miss, send the packet to the CPU for processing.", "label": "flowcache"}
+{"text": "Use a hash of the 5-tuple as the key for the flow cache.", "label": "flowcache"}
+{"text": "Track the state of UDP 'connections' using a timeout.", "label": "flowcache"}
+{"text": "Refresh the timeout on a flow entry every time a packet matches.", "label": "flowcache"}
+{"text": "Store application-layer metadata associated with a flow.", "label": "flowcache"}
+{"text": "Implement a mechanism to handle flow collisions in the hash table.", "label": "flowcache"}
+{"text": "The connection tracking system needs to handle ICMP sessions.", "label": "flowcache"}
+{"text": "Export active flow data using NetFlow v9.", "label": "flowcache"}
+{"text": "Design a distributed flow cache across multiple processing cores.", "label": "flowcache"}
+{"text": "Validate the TCP window scaling and sequence numbers against the cached state.", "label": "flowcache"}
+{"text": "Cache the egress interface and next-hop MAC address for each flow.", "label": "flowcache"}
+{"text": "Set a shorter timeout for UDP flows than for TCP flows.", "label": "flowcache"}
+{"text": "Implement an aging process to clean up stale flow entries.", "label": "flowcache"}
+{"text": "The first packet of a flow establishes the state.", "label": "flowcache"}
+{"text": "When a route changes, flush all cached flows affected by the change.", "label": "flowcache"}
+{"text": "Store flow state in TCAM for high-speed lookups.", "label": "flowcache"}
+{"text": "Implement a per-user session limit.", "label": "flowcache"}
+{"text": "The flow cache should track the start and end time of each flow.", "label": "flowcache"}
+{"text": "Cache the QoS policy decision for a flow.", "label": "flowcache"}
+{"text": "On a TCP RST, immediately tear down the corresponding flow entry.", "label": "flowcache"}
+{"text": "Handle TCP simultaneous open by tracking state for both sides.", "label": "flowcache"}
+{"text": "The system must track at least 250,000 concurrent flows.", "label": "flowcache"}
+{"text": "Implement a garbage collection thread for the flow table.", "label": "flowcache"}
+{"text": "Associate a security policy with each cached flow.", "label": "flowcache"}
+{"text": "The flow entry should store the translated IP and port for NAT.", "label": "flowcache"}
+{"text": "Build a system to track user sessions.", "label": "flowcache"}
+{"text": "Implement a fast-path cache in hardware.", "label": "flowcache"}
+{"text": "Create a flow if one does not exist for this packet.", "label": "flowcache"}
+{"text": "The flow cache must handle IP fragments correctly.", "label": "flowcache"}
+{"text": "Use a two-level hash table for the flow cache to reduce collisions.", "label": "flowcache"}
+{"text": "The state of the connection is 'ESTABLISHED'.", "label": "flowcache"}
+{"text": "Cache the result of the policy engine lookup.", "label": "flowcache"}
+{"text": "Update the last-seen timestamp for this session.", "label": "flowcache"}
+{"text": "Implement a flow cache with a FIFO (First-In, First-Out) eviction policy.", "label": "flowcache"}
+{"text": "Store the DSCP value in the flow entry to ensure consistent QoS.", "label": "flowcache"}
+{"text": "The connection tracking module needs to be SCTP-aware.", "label": "flowcache"}
+{"text": "Aggregate microflows into larger session records.", "label": "flowcache"}
+{"text": "The system needs to maintain state for millions of concurrent connections.", "label": "flowcache"}
+{"text": "Implement a TCP state machine as defined in RFC 793.", "label": "flowcache"}
+{"text": "Monitor queue delay for detecting network congestion and buffer bloat", "label": "link_monitor"}
+{"text": "Measure link latency between ingress and egress ports using packet timestamps", "label": "link_monitor"}
+{"text": "Implement delay measurement using In-band Network Telemetry (INT) headers", "label": "link_monitor"}
+{"text": "Track queue occupancy and instantaneous queue length over 1-second intervals", "label": "link_monitor"}
+{"text": "Create a link monitoring system that measures one-way delay through switches", "label": "link_monitor"}
+{"text": "Monitor packet latency through each processing pipeline stage for troubleshooting", "label": "link_monitor"}
+{"text": "Implement round-trip time measurement for network performance analysis", "label": "link_monitor"}
+{"text": "Measure round-trip time for Path MTU discovery and optimization", "label": "link_monitor"}
+{"text": "Track delay variations (jitter) in multi-hop paths for SLA verification", "label": "link_monitor"}
+{"text": "Monitor link quality using jitter measurements for real-time applications", "label": "link_monitor"}
+{"text": "Implement active probing with timestamped packets for latency monitoring", "label": "link_monitor"}
+{"text": "Measure queuing delay at each hop for end-to-end latency breakdown", "label": "link_monitor"}
+{"text": "Track packet inter-arrival times for detecting microburst congestion", "label": "link_monitor"}
+{"text": "Create link utilization monitoring using byte counters and time windows", "label": "link_monitor"}
+{"text": "Implement Two-Way Active Measurement Protocol (TWAMP) for latency testing", "label": "link_monitor"}
+{"text": "Monitor packet loss rates on each egress port for link health assessment", "label": "link_monitor"}
+{"text": "Track buffer occupancy levels and generate alerts when thresholds are exceeded", "label": "link_monitor"}
+{"text": "Implement passive latency monitoring using TCP timestamp options", "label": "link_monitor"}
+{"text": "Measure switching latency from packet arrival to departure events", "label": "link_monitor"}
+{"text": "Create historical latency tracking with percentile calculations over time", "label": "link_monitor"}
+{"text": "Measure one-way delay between ingress and egress timestamps", "label": "link_monitor"}
+{"text": "Calculate queuing delay by comparing enqueue and dequeue times", "label": "link_monitor"}
+{"text": "Track instantaneous queue length every millisecond for latency analysis", "label": "link_monitor"}
+{"text": "Implement active delay measurement using probe packets with timestamps", "label": "link_monitor"}
+{"text": "Measure link propagation delay between adjacent switches", "label": "link_monitor"}
+{"text": "Calculate jitter as the variance in packet inter-arrival times", "label": "link_monitor"}
+{"text": "Monitor round-trip time using echo request and reply packets", "label": "link_monitor"}
+{"text": "Track per-port latency from packet arrival to transmission", "label": "link_monitor"}
+{"text": "Measure switch processing delay through pipeline stages", "label": "link_monitor"}
+{"text": "Calculate buffer delay based on queue occupancy and drain rate", "label": "link_monitor"}
+{"text": "Monitor network health in real-time.", "label": "link_monitor"}
+{"text": "Ensure SLA compliance for critical applications.", "label": "link_monitor"}
+{"text": "Provide real-time network visibility.", "label": "link_monitor"}
+{"text": "Check the status of the link between here and the core router.", "label": "link_monitor"}
+{"text": "Timestamp the packet upon ingress.", "label": "link_monitor"}
+{"text": "How long are packets waiting in the queue?", "label": "link_monitor"}
+{"text": "Measure the end-to-end delay for this flow.", "label": "link_monitor"}
+{"text": "Send out ICMP probes to measure RTT.", "label": "link_monitor"}
+{"text": "Calculate the 99th percentile latency for the past hour.", "label": "link_monitor"}
+{"text": "Count the number of dropped packets on interface eth0.", "label": "link_monitor"}
+{"text": "Monitor the bandwidth usage on the WAN link.", "label": "link_monitor"}
+{"text": "Is the network performing as expected?", "label": "link_monitor"}
+{"text": "Implement a system to detect microbursts.", "label": "link_monitor"}
+{"text": "Record the timestamp and queue depth in the packet header.", "label": "link_monitor"}
+{"text": "How much buffer space is currently being used?", "label": "link_monitor"}
+{"text": "Track the packet's path through the network.", "label": "link_monitor"}
+{"text": "Generate an alert if latency exceeds 10ms.", "label": "link_monitor"}
+{"text": "Use Y.1731 for performance monitoring.", "label": "link_monitor"}
+{"text": "Passively monitor network performance by observing TCP traffic.", "label": "link_monitor"}
+{"text": "What is the current jitter on the VoIP traffic class?", "label": "link_monitor"}
+{"text": "Keep track of the high watermark for queue occupancy.", "label": "link_monitor"}
+{"text": "Measure the time it takes for a packet to traverse the switch fabric.", "label": "link_monitor"}
+{"text": "Implement Bidirectional Forwarding Detection (BFD) for fast failure detection.", "label": "link_monitor"}
+{"text": "Log the ingress and egress timestamps for sampled packets.", "label": "link_monitor"}
+{"text": "Calculate the available capacity on a link.", "label": "link_monitor"}
+{"text": "Monitor the network for any signs of degradation.", "label": "link_monitor"}
+{"text": "Use SNMP to query interface counters every 5 minutes.", "label": "link_monitor"}
+{"text": "Check for CRC errors on all physical interfaces.", "label": "link_monitor"}
+{"text": "What is the packet loss percentage on our link to the ISP?", "label": "link_monitor"}
+{"text": "Implement a system to measure application-level latency.", "label": "link_monitor"}
+{"text": "Track the number of out-of-order packets for a specific TCP flow.", "label": "link_monitor"}
+{"text": "Decompose the total delay into processing, queuing, transmission, and propagation components.", "label": "link_monitor"}
+{"text": "Use IP SLA probes to monitor service availability.", "label": "link_monitor"}
+{"text": "Monitor the health of the network fabric.", "label": "link_monitor"}
+{"text": "Set up a port mirror to send a copy of all traffic to a monitoring tool.", "label": "link_monitor"}
+{"text": "Calculate the inter-packet gap for real-time video streams.", "label": "link_monitor"}
+{"text": "Implement a system to visualize network performance data.", "label": "link_monitor"}
+{"text": "What's the current buffer utilization?", "label": "link_monitor"}
+{"text": "Measure one-way latency using synchronized clocks.", "label": "link_monitor"}
+{"text": "Track the number of bytes transmitted and received on each interface.", "label": "link_monitor"}
+{"text": "Is there congestion on this path?", "label": "link_monitor"}
+{"text": "Implement a performance monitoring solution.", "label": "link_monitor"}
+{"text": "Use sFlow to get real-time traffic statistics.", "label": "link_monitor"}
+{"text": "Monitor the rate of packet drops.", "label": "link_monitor"}
+{"text": "Characterize the latency profile of our network.", "label": "link_monitor"}
+{"text": "Implement hardware timestamping for maximum accuracy.", "label": "link_monitor"}
+{"text": "Send synthetic traffic to measure network characteristics.", "label": "link_monitor"}
+{"text": "Keep an eye on the network's vital signs.", "label": "link_monitor"}
+{"text": "The monitoring system must be highly accurate and low-overhead.", "label": "link_monitor"}
+{"text": "Capture the egress timestamp just before transmission.", "label": "link_monitor"}
+{"text": "Implement a simple ping-based availability monitor.", "label": "link_monitor"}
+{"text": "Set up a continuous network performance baseline.", "label": "link_monitor"}
+{"text": "Detect any anomalies in network behavior.", "label": "link_monitor"}
+{"text": "Implement ECMP load balancing across 4 equal-cost paths using 5-tuple hashing", "label": "load_balance"}
+{"text": "Create a load balancer using CRC16 hashing on source and destination addresses", "label": "load_balance"}
+{"text": "Distribute traffic across multiple uplinks using weighted round-robin scheduling", "label": "load_balance"}
+{"text": "Implement flow-based load balancing with consistent hashing for session persistence", "label": "load_balance"}
+{"text": "Balance load across a server pool based on the least connections algorithm", "label": "load_balance"}
+{"text": "Create a per-packet load balancing mechanism rotating among available paths", "label": "load_balance"}
+{"text": "Distribute packets evenly using a hash-threshold algorithm with link weights", "label": "load_balance"}
+{"text": "Implement XOR hashing for path selection across 8 parallel links", "label": "load_balance"}
+{"text": "Balance traffic across multiple next-hops with dynamic weight adjustment", "label": "load_balance"}
+{"text": "Create equal-cost multipath routing using resilient hashing for minimal disruption", "label": "load_balance"}
+{"text": "Implement Link Aggregation (LAG) with hash-based member link selection", "label": "load_balance"}
+{"text": "Distribute flows across processor cores using Receive Side Scaling (RSS) hashing", "label": "load_balance"}
+{"text": "Create a consistent hash ring for distributing traffic across cache servers", "label": "load_balance"}
+{"text": "Implement flowlet-based load balancing to prevent packet reordering", "label": "load_balance"}
+{"text": "Balance traffic across WAN links based on measured latency and capacity", "label": "load_balance"}
+{"text": "Distribute packets using the highest random weight scheduling for fairness", "label": "load_balance"}
+{"text": "Implement power-of-two-choices load balancing for improved distribution", "label": "load_balance"}
+{"text": "Create adaptive load balancing that avoids congested paths using feedback", "label": "load_balance"}
+{"text": "Distribute traffic based on destination MAC address hashing for Layer 2", "label": "load_balance"}
+{"text": "Implement weighted ECMP with traffic engineering to prefer higher capacity links", "label": "load_balance"}
+{"text": "Distribute traffic evenly across servers.", "label": "load_balance"}
+{"text": "Improve network resiliency and bandwidth.", "label": "load_balance"}
+{"text": "Ensure high availability of web servers.", "label": "load_balance"}
+{"text": "Use all available paths to the destination.", "label": "load_balance"}
+{"text": "Set up a server load balancer (SLB) for the web farm.", "label": "load_balance"}
+{"text": "Hash on the 5-tuple to select a next-hop.", "label": "load_balance"}
+{"text": "Implement session persistence (stickiness) based on source IP.", "label": "load_balance"}
+{"text": "Use weighted round-robin to send more traffic to the more powerful server.", "label": "load_balance"}
+{"text": "Configure a link aggregation group (LAG) with LACP.", "label": "load_balance"}
+{"text": "If a server fails a health check, remove it from the load balancing pool.", "label": "load_balance"}
+{"text": "Distribute traffic based on the least number of active connections.", "label": "load_balance"}
+{"text": "Implement global server load balancing (GSLB) using DNS.", "label": "load_balance"}
+{"text": "Use consistent hashing to minimize disruption when servers are added or removed.", "label": "load_balance"}
+{"text": "Spread the traffic across all equal-cost routes.", "label": "load_balance"}
+{"text": "Configure the load balancer to terminate SSL connections.", "label": "load_balance"}
+{"text": "Implement a per-flow load balancing scheme.", "label": "load_balance"}
+{"text": "Use random path selection for load distribution.", "label": "load_balance"}
+{"text": "Set up a Direct Server Return (DSR) load balancing configuration.", "label": "load_balance"}
+{"text": "Balance the load based on server response time.", "label": "load_balance"}
+{"text": "Ensure that all packets of the same flow take the same path.", "label": "load_balance"}
+{"text": "Use resilient hashing to minimize flow reassignment on link failure.", "label": "load_balance"}
+{"text": "Distribute ingress traffic across multiple firewall instances.", "label": "load_balance"}
+{"text": "Implement a weighted cost multipath (WCMP) algorithm.", "label": "load_balance"}
+{"text": "Use the source MAC address as a hash input for L2 load balancing.", "label": "load_balance"}
+{"text": "The load balancer should perform health checks using HTTP GET requests.", "label": "load_balance"}
+{"text": "Set up an active-passive failover for the load balancers themselves.", "label": "load_balance"}
+{"text": "Use a hash of the URL to distribute requests among caching proxies.", "label": "load_balance"}
+{"text": "Implement a dynamic load balancing algorithm that adapts to network conditions.", "label": "load_balance"}
+{"text": "Distribute incoming packets across multiple CPU cores for processing.", "label": "load_balance"}
+{"text": "Balance traffic based on the source IP and source port only.", "label": "load_balance"}
+{"text": "Set up a Layer 4 load balancer.", "label": "load_balance"}
+{"text": "Implement a mechanism to drain connections from a server before taking it offline for maintenance.", "label": "load_balance"}
+{"text": "Configure the load balancer as a reverse proxy.", "label": "load_balance"}
+{"text": "Use ECMP to its full potential.", "label": "load_balance"}
+{"text": "Distribute the load across redundant WAN links.", "label": "load_balance"}
+{"text": "Implement a fat-tree topology with multipath routing.", "label": "load_balance"}
+{"text": "Set up a content switching load balancer that inspects the HTTP host header.", "label": "load_balance"}
+{"text": "Balance the load to avoid creating network bottlenecks.", "label": "load_balance"}
+{"text": "Implement a round-robin DNS setup.", "label": "load_balance"}
+{"text": "Use the VLAN ID as part of the hash input.", "label": "load_balance"}
+{"text": "Configure the load balancer to handle WebSocket connections correctly.", "label": "load_balance"}
+{"text": "Implement a 'choice of two' hashing scheme for better distribution.", "label": "load_balance"}
+{"text": "The load balancing algorithm should be resilient to topology changes.", "label": "load_balance"}
+{"text": "Set up unequal cost load balancing.", "label": "load_balance"}
+{"text": "Use the MPLS entropy label for better load balancing.", "label": "load_balance"}
+{"text": "Configure a TCP proxy load balancer.", "label": "load_balance"}
+{"text": "The system should gracefully handle server failures.", "label": "load_balance"}
+{"text": "Implement a load sharing mechanism.", "label": "load_balance"}
+{"text": "Balance traffic between on-premises and cloud resources.", "label": "load_balance"}
+{"text": "Use a stateful load balancer that can track session information.", "label": "load_balance"}
+{"text": "Implement a hash function that provides a uniform distribution of flows.", "label": "load_balance"}
+{"text": "The load balancer needs to support HTTP/2.", "label": "load_balance"}
+{"text": "Configure session persistence with a cookie.", "label": "load_balance"}
+{"text": "Distribute the traffic to prevent any single server from being overwhelmed.", "label": "load_balance"}
+{"text": "Set up a load balancer in a high-availability pair.", "label": "load_balance"}
+{"text": "Generate packet digests for in-band network telemetry containing switch ID and timestamps", "label": "mri"}
+{"text": "Implement in-band network telemetry for measuring per-hop queuing delays", "label": "mri"}
+{"text": "Create measurement reports containing queue depth, link utilization, and drop counts", "label": "mri"}
+{"text": "Track per-flow packet counts and report to a centralized collector every 10 seconds", "label": "mri"}
+{"text": "Implement MRI headers for path tracking through the data center fabric", "label": "mri"}
+{"text": "Generate digests capturing queue occupancy and egress port for congestion analysis", "label": "mri"}
+{"text": "Create telemetry data for real-time network visualization and monitoring", "label": "mri"}
+{"text": "Implement packet-level measurements of end-to-end latency across switch hops", "label": "mri"}
+{"text": "Report queue statistics using Postcard-based telemetry in packet headers", "label": "mri"}
+{"text": "Generate measurement reports for anomaly detection and traffic analysis", "label": "mri"}
+{"text": "Implement INT source functionality, adding telemetry metadata to selected flows", "label": "mri"}
+{"text": "Create per-packet telemetry records with microsecond-resolution timestamps", "label": "mri"}
+{"text": "Track aggregate flow statistics and export to a NetFlow collector", "label": "mri"}
+{"text": "Implement an INT sink that extracts and processes telemetry from packet headers", "label": "mri"}
+{"text": "Generate alerts when measured latency exceeds a 10-millisecond threshold", "label": "mri"}
+{"text": "Create sampling-based telemetry, collecting 1 in 1000 packets for analysis", "label": "mri"}
+{"text": "Implement IOAM (In-situ OAM) for comprehensive path tracing capabilities", "label": "mri"}
+{"text": "Report buffer utilization metrics for capacity planning and optimization", "label": "mri"}
+{"text": "Generate flow records with start time, duration, and byte counts", "label": "mri"}
+{"text": "Implement streaming telemetry, exporting metrics every second to an analytics platform", "label": "mri"}
+{"text": "Insert INT metadata headers containing switch ID and queue depth", "label": "mri"}
+{"text": "Implement an in-band network telemetry source adding per-hop information", "label": "mri"}
+{"text": "Extract INT telemetry data from packet headers at the network edge", "label": "mri"}
+{"text": "Add telemetry instructions for hop-by-hop data collection", "label": "mri"}
+{"text": "Implement the IOAM trace option, recording path and timing information", "label": "mri"}
+{"text": "Generate postcard-style telemetry reports to a collector", "label": "mri"}
+{"text": "Embed switch telemetry metadata in the packet for path visibility", "label": "mri"}
+{"text": "Implement an INT sink to process and remove telemetry headers", "label": "mri"}
+{"text": "Add hop latency and queue occupancy to the INT stack", "label": "mri"}
+{"text": "Create telemetry reports with microsecond timestamps per switch", "label": "mri"}
+{"text": "Gain deep visibility into network paths.", "label": "mri"}
+{"text": "Export network state for offline analysis.", "label": "mri"}
+{"text": "Collect network data for capacity planning.", "label": "mri"}
+{"text": "Add the switch ID to the packet's metadata.", "label": "mri"}
+{"text": "At each hop, append the current queue depth to the INT header.", "label": "mri"}
+{"text": "Configure the device to be an INT source node.", "label": "mri"}
+{"text": "Generate NetFlow v9 records for all UDP traffic.", "label": "mri"}
+{"text": "The last switch in the path should act as an INT sink.", "label": "mri"}
+{"text": "Collect and export telemetry data.", "label": "mri"}
+{"text": "Implement In-situ OAM as defined in RFC 9197.", "label": "mri"}
+{"text": "Create a flow record containing the 5-tuple, packet count, and byte count.", "label": "mri"}
+{"text": "Sample one out of every 10,000 packets for deep analysis.", "label": "mri"}
+{"text": "The telemetry report should include the ingress port and egress port.", "label": "mri"}
+{"text": "Use gRPC to stream telemetry data to a collector.", "label": "mri"}
+{"text": "At the egress of the network, strip the telemetry header and send the report.", "label": "mri"}
+{"text": "Generate an IPFIX (IP Flow Information Export) record.", "label": "mri"}
+{"text": "The system should provide hop-by-hop visibility.", "label": "mri"}
+{"text": "Add a timestamp to the packet's telemetry metadata.", "label": "mri"}
+{"text": "Configure sFlow on all interfaces.", "label": "mri"}
+{"text": "The INT metadata stack is getting too large; switch to postcard mode.", "label": "mri"}
+{"text": "Report the reason a packet was dropped (e.g., ACL, full queue).", "label": "mri"}
+{"text": "Create a system for real-time network monitoring.", "label": "mri"}
+{"text": "The telemetry data needs to be exported in JSON format over Kafka.", "label": "mri"}
+{"text": "Implement the IOAM Pre-allocated Trace Option.", "label": "mri"}
+{"text": "The INT sink should parse the metadata stack and send it to a database.", "label": "mri"}
+{"text": "Collect telemetry on a per-flow basis.", "label": "mri"}
+{"text": "The measurement report must include the path taken by the packet.", "label": "mri"}
+{"text": "Configure the switch to act as a transit node for in-band telemetry.", "label": "mri"}
+{"text": "Export telemetry data every 30 seconds.", "label": "mri"}
+{"text": "The telemetry system should not add more than 5% overhead to the network.", "label": "mri"}
+{"text": "Record the residence time of the packet at this switch.", "label": "mri"}
+{"text": "Generate a flow record when the flow terminates.", "label": "mri"}
+{"text": "The telemetry collector is at IP address 10.10.10.10.", "label": "mri"}
+{"text": "Implement a threshold-based trigger for telemetry reporting.", "label": "mri"}
+{"text": "The device should add its node ID to the IOAM trace data.", "label": "mri"}
+{"text": "The telemetry report should be sent out-of-band.", "label": "mri"}
+{"text": "Configure the INT watch list to only add metadata to specific flows.", "label": "mri"}
+{"text": "The system needs to provide fine-grained network state information.", "label": "mri"}
+{"text": "Export per-queue statistics.", "label": "mri"}
+{"text": "The telemetry data should be used to build a real-time network map.", "label": "mri"}
+{"text": "Implement a mechanism to collect and analyze network data.", "label": "mri"}
+{"text": "The INT header should include the link utilization.", "label": "mri"}
+{"text": "Configure the sFlow sampling rate to be 1 in 4096.", "label": "mri"}
+{"text": "The IOAM data field should contain the egress interface ID.", "label": "mri"}
+{"text": "Generate a report for every packet that is dropped.", "label": "mri"}
+{"text": "The telemetry framework should be extensible.", "label": "mri"}
+{"text": "The INT sink must handle packets with oversized metadata.", "label": "mri"}
+{"text": "Export flow records to a SIEM for security analysis.", "label": "mri"}
+{"text": "The system should provide insights into network behavior.", "label": "mri"}
+{"text": "Implement multicast forwarding to 10 receivers using IGMP snooping", "label": "multicast"}
+{"text": "Create a multicast tree for video streaming distribution to the subscriber set", "label": "multicast"}
+{"text": "Handle packet replication for one-to-many content delivery networks", "label": "multicast"}
+{"text": "Implement broadcast forwarding within VLAN 100 for ARP resolution", "label": "multicast"}
+{"text": "Create multicast group management for IPTV service delivery", "label": "multicast"}
+{"text": "Replicate packets to all ports in a multicast group using a bitmap index", "label": "multicast"}
+{"text": "Implement flooding for unknown unicast MAC addresses within a broadcast domain", "label": "multicast"}
+{"text": "Learn source MAC addresses for reverse path forwarding checks", "label": "multicast"}
+{"text": "Create a multicast distribution mechanism using the PIM sparse mode protocol", "label": "multicast"}
+{"text": "Implement a pruned multicast tree to avoid sending to uninterested receivers", "label": "multicast"}
+{"text": "Design selective replication based on IGMP membership reports", "label": "multicast"}
+{"text": "Build multicast routing using a shortest path tree from the source to receivers", "label": "multicast"}
+{"text": "Implement broadcast storm prevention using the spanning tree protocol", "label": "multicast"}
+{"text": "Create efficient multicast replication using hardware clone sessions", "label": "multicast"}
+{"text": "Design Any-Source Multicast (ASM) distribution within the data center", "label": "multicast"}
+{"text": "Implement multicast load balancing across multiple distribution trees", "label": "multicast"}
+{"text": "Create multicast fast convergence on link failures with backup paths", "label": "multicast"}
+{"text": "Build an IGMP querier for managing group membership in Layer 2 networks", "label": "multicast"}
+{"text": "Implement SSM (Source-Specific Multicast) for secure content distribution", "label": "multicast"}
+{"text": "Design multicast packet duplication with egress port list pruning", "label": "multicast"}
+{"text": "Efficiently deliver streaming video to multiple subscribers.", "label": "multicast"}
+{"text": "Handle broadcast traffic within a VLAN.", "label": "multicast"}
+{"text": "Distribute this packet to multiple destinations.", "label": "multicast"}
+{"text": "Set up a multicast group for IPTV channel 1.", "label": "multicast"}
+{"text": "Forward this packet to all hosts that have joined group 239.1.1.1.", "label": "multicast"}
+{"text": "Perform a Reverse Path Forwarding (RPF) check on this multicast packet.", "label": "multicast"}
+{"text": "Enable IGMP snooping on all VLANs.", "label": "multicast"}
+{"text": "Configure this router as a PIM Rendezvous Point (RP).", "label": "multicast"}
+{"text": "When an IGMP leave message is received, prune the corresponding interface from the tree.", "label": "multicast"}
+{"text": "Replicate the incoming packet to the list of egress ports.", "label": "multicast"}
+{"text": "Send one copy of the packet, not multiple unicast copies.", "label": "multicast"}
+{"text": "Implement a (*,G) entry in the multicast routing table.", "label": "multicast"}
+{"text": "Handle IGMPv3 source-specific join requests.", "label": "multicast"}
+{"text": "Forward broadcast packets (like ARP requests) to all ports in the VLAN except the source port.", "label": "multicast"}
+{"text": "Create a multicast distribution tree.", "label": "multicast"}
+{"text": "If the destination MAC is a broadcast address, flood the packet.", "label": "multicast"}
+{"text": "Configure this switch to snoop IGMP messages.", "label": "multicast"}
+{"text": "Implement PIM Sparse-Mode (PIM-SM).", "label": "multicast"}
+{"text": "This application requires one-to-many communication.", "label": "multicast"}
+{"text": "If an interface has no interested receivers, do not forward multicast traffic to it.", "label": "multicast"}
+{"text": "Clone the packet for each downstream receiver.", "label": "multicast"}
+{"text": "Set up a shared tree for the multicast group.", "label": "multicast"}
+{"text": "Implement Source-Specific Multicast (SSM).", "label": "multicast"}
+{"text": "Handle multicast listener discovery (MLD) for IPv6.", "label": "multicast"}
+{"text": "Build the outgoing interface list (OIL) for this multicast flow.", "label": "multicast"}
+{"text": "Prevent multicast traffic from flooding the entire network.", "label": "multicast"}
+{"text": "Set up multicast routing between different subnets.", "label": "multicast"}
+{"text": "The switch needs to learn which ports have active multicast listeners.", "label": "multicast"}
+{"text": "Create an (S,G) entry upon receiving the first packet from source S for group G.", "label": "multicast"}
+{"text": "Implement a mechanism for designated router election in PIM.", "label": "multicast"}
+{"text": "Replicate the packet in the hardware fabric.", "label": "multicast"}
+{"text": "Set up a multicast backbone.", "label": "multicast"}
+{"text": "Handle unknown unicast traffic by flooding it to the VLAN.", "label": "multicast"}
+{"text": "The IGMP querier sends periodic membership queries.", "label": "multicast"}
+{"text": "Configure a static multicast route.", "label": "multicast"}
+{"text": "Implement Multicast DNS (mDNS) for local service discovery.", "label": "multicast"}
+{"text": "Forward the packet to all members of the multicast group.", "label": "multicast"}
+{"text": "The RPF check failed; drop the packet.", "label": "multicast"}
+{"text": "Use a multicast group for notifications in a distributed system.", "label": "multicast"}
+{"text": "Configure the time-to-live (TTL) threshold for multicast packets.", "label": "multicast"}
+{"text": "Implement bidirectional PIM.", "label": "multicast"}
+{"text": "The system should support thousands of multicast groups.", "label": "multicast"}
+{"text": "Set up inter-domain multicast routing using MSDP.", "label": "multicast"}
+{"text": "When a host wants to receive a multicast stream, it sends an IGMP join.", "label": "multicast"}
+{"text": "Map a multicast MAC address to a list of output ports.", "label": "multicast"}
+{"text": "The packet needs to be sent to multiple recipients simultaneously.", "label": "multicast"}
+{"text": "Create a copy of the packet for each egress port in the replication list.", "label": "multicast"}
+{"text": "Implement PIM dense mode for a small, dense network.", "label": "multicast"}
+{"text": "This is a broadcast packet; send it to everyone in the broadcast domain.", "label": "multicast"}
+{"text": "The multicast router builds a distribution tree to reach all listeners.", "label": "multicast"}
+{"text": "Implement IGMP proxying.", "label": "multicast"}
+{"text": "Set up a rendezvous point for a specific multicast group range.", "label": "multicast"}
+{"text": "The switch should not send multicast traffic to ports with no listeners.", "label": "multicast"}
+{"text": "Handle a one-to-many data flow.", "label": "multicast"}
+{"text": "Implement queue management with 8 priority levels for differentiated service", "label": "qos"}
+{"text": "Prioritize VoIP traffic over best-effort data using strict priority scheduling", "label": "qos"}
+{"text": "Create weighted fair queuing with 70% bandwidth for premium traffic class", "label": "qos"}
+{"text": "Schedule packets using deficit round-robin across 4 traffic classes", "label": "qos"}
+{"text": "Implement a traffic shaper with a token bucket rate limiter at 1 Gbps", "label": "qos"}
+{"text": "Classify packets into the expedited forwarding class based on DSCP markings", "label": "qos"}
+{"text": "Create hierarchical QoS with per-class rate limiting and overall port shaping", "label": "qos"}
+{"text": "Implement a priority queue for control plane traffic to ensure network stability", "label": "qos"}
+{"text": "Assign traffic to queues based on 802.1p CoS bits in VLAN headers", "label": "qos"}
+{"text": "Create a bandwidth reservation guaranteeing 100 Mbps for management traffic", "label": "qos"}
+{"text": "Implement class-based weighted fair queuing with configurable weights per class", "label": "qos"}
+{"text": "Schedule real-time traffic with bounded latency using calendar queues", "label": "qos"}
+{"text": "Create a traffic policer that drops packets exceeding a 10 Mbps committed rate", "label": "qos"}
+{"text": "Implement RED queue management per traffic class for congestion avoidance", "label": "qos"}
+{"text": "Assign DSCP values, marking video traffic as AF41 for preferential treatment", "label": "qos"}
+{"text": "Create a dual-rate three-color marker for traffic conformance checking", "label": "qos"}
+{"text": "Implement time-aware shaping for deterministic low-latency communication", "label": "qos"}
+{"text": "Schedule packets using weighted round-robin with a 4:2:1 traffic ratio", "label": "qos"}
+{"text": "Create priority flow control, pausing low-priority traffic during congestion", "label": "qos"}
+{"text": "Implement per-flow rate limiting, preventing individual flows from exceeding 50 Mbps", "label": "qos"}
+{"text": "Prioritize voice traffic over bulk data.", "label": "qos"}
+{"text": "Guarantee bandwidth for critical services.", "label": "qos"}
+{"text": "Ensure quality for VoIP calls.", "label": "qos"}
+{"text": "Classify this packet based on its 5-tuple.", "label": "qos"}
+{"text": "Mark this packet with DSCP EF (Expedited Forwarding).", "label": "qos"}
+{"text": "Place this packet in the high-priority queue.", "label": "qos"}
+{"text": "Implement a QoS policy to manage network traffic.", "label": "qos"}
+{"text": "Shape all outbound traffic on the WAN interface to 100 Mbps.", "label": "qos"}
+{"text": "If a packet is out of profile, drop it.", "label": "qos"}
+{"text": "Use Weighted Fair Queuing (WFQ) to share bandwidth among flows.", "label": "qos"}
+{"text": "The strict priority queue should always be serviced first.", "label": "qos"}
+{"text": "Map the 802.1p CoS value to a specific DSCP value.", "label": "qos"}
+{"text": "Police inbound traffic from the customer to 10 Mbps.", "label": "qos"}
+{"text": "Provide differentiated services to different types of traffic.", "label": "qos"}
+{"text": "Set up a class map to identify voice traffic.", "label": "qos"}
+{"text": "Create a policy map to apply QoS actions to the voice class.", "label": "qos"}
+{"text": "This traffic is more important than that traffic.", "label": "qos"}
+{"text": "Limit the rate of non-essential background traffic.", "label": "qos"}
+{"text": "Use a token bucket algorithm for rate limiting.", "label": "qos"}
+{"text": "Remark the DSCP value of non-compliant packets to a lower priority.", "label": "qos"}
+{"text": "Ensure that control plane traffic is never dropped.", "label": "qos"}
+{"text": "Configure four output queues with different priorities.", "label": "qos"}
+{"text": "Implement a low-latency queuing (LLQ) policy.", "label": "qos"}
+{"text": "Video conferencing traffic needs low jitter and low latency.", "label": "qos"}
+{"text": "Assign at least 25% of the link bandwidth to the 'business-critical' class.", "label": "qos"}
+{"text": "Trust the DSCP markings on packets arriving from the internal network.", "label": "qos"}
+{"text": "Shape traffic to avoid exceeding the CIR (Committed Information Rate).", "label": "qos"}
+{"text": "Implement a hierarchical QoS policy.", "label": "qos"}
+{"text": "Use NBAR (Network Based Application Recognition) to classify traffic.", "label": "qos"}
+{"text": "The scheduler should service the queues based on their assigned weights.", "label": "qos"}
+{"text": "Configure bandwidth guarantees for different departments.", "label": "qos"}
+{"text": "If the high-priority queue is empty, service the next highest priority queue.", "label": "qos"}
+{"text": "Apply this QoS service policy to the egress interface.", "label": "qos"}
+{"text": "The system should prevent lower-priority traffic from being starved.", "label": "qos"}
+{"text": "Classify packets based on the IP precedence bits.", "label": "qos"}
+{"text": "Set up a policer with a committed burst size and an excess burst size.", "label": "qos"}
+{"text": "This is best-effort traffic; put it in the default queue.", "label": "qos"}
+{"text": "Implement traffic conditioning at the edge of the network.", "label": "qos"}
+{"text": "Configure separate queues for unicast and multicast traffic.", "label": "qos"}
+{"text": "The QoS policy needs to be end-to-end.", "label": "qos"}
+{"text": "Use flow-based queuing to provide fairness between individual user sessions.", "label": "qos"}
+{"text": "The packet scheduler should be work-conserving.", "label": "qos"}
+{"text": "Manage network resources effectively.", "label": "qos"}
+{"text": "Implement a mechanism to provide predictable network performance.", "label": "qos"}
+{"text": "Configure the queue depths to avoid bufferbloat.", "label": "qos"}
+{"text": "Mark traffic at the ingress and enforce policy at the egress.", "label": "qos"}
+{"text": "The system needs to support 8 classes of service.", "label": "qos"}
+{"text": "Implement a single-rate, three-color marker.", "label": "qos"}
+{"text": "The traffic shaper should smooth out bursty traffic.", "label": "qos"}
+{"text": "Assign a priority level to this packet.", "label": "qos"}
+{"text": "The network must be able to differentiate between different application flows.", "label": "qos"}
+{"text": "Implement a QoS architecture based on DiffServ.", "label": "qos"}
+{"text": "Implement source routing with an explicit path specified in the packet header", "label": "source_routing"}
+{"text": "Create segment routing using an MPLS label stack to encode the network path", "label": "source_routing"}
+{"text": "Design loose source routing, allowing intermediate hops between specified nodes", "label": "source_routing"}
+{"text": "Build strict source routing, requiring packets to traverse an exact sequence of routers", "label": "source_routing"}
+{"text": "Implement an IPv6 routing header with an ordered list of intermediate destinations", "label": "source_routing"}
+{"text": "Create SRv6 using IPv6 extension headers for programmable path control", "label": "source_routing"}
+{"text": "Design path-based forwarding using a segment list in the packet metadata", "label": "source_routing"}
+{"text": "Implement a source-routed overlay network with application-specified paths", "label": "source_routing"}
+{"text": "Build traffic engineering using source routing to avoid congested links", "label": "source_routing"}
+{"text": "Create an explicit path with waypoint enforcement through specific middleboxes", "label": "source_routing"}
+{"text": "Implement segment routing with a compressed SID list for efficiency", "label": "source_routing"}
+{"text": "Design source routing for active measurement along predetermined paths", "label": "source_routing"}
+{"text": "Build network slicing using source routing to isolate traffic classes", "label": "source_routing"}
+{"text": "Implement policy-based routing with a source-specified service chain traversal", "label": "source_routing"}
+{"text": "Create fast reroute using pre-computed backup paths in the source route", "label": "source_routing"}
+{"text": "Design multi-path routing with the source selecting from multiple segment lists", "label": "source_routing"}
+{"text": "Implement a binding SID, mapping a source route to a specific low-latency path", "label": "source_routing"}
+{"text": "Build service function chaining using source routing through a VNF sequence", "label": "source_routing"}
+{"text": "Create intent-based networking with the source expressing path constraints", "label": "source_routing"}
+{"text": "Implement segment routing for inter-domain paths across AS boundaries", "label": "source_routing"}
+{"text": "Steer traffic along a specific, engineered path.", "label": "source_routing"}
+{"text": "Implement service function chaining.", "label": "source_routing"}
+{"text": "The packet should dictate its own path through the network.", "label": "source_routing"}
+{"text": "Push an MPLS label stack onto the packet representing the desired path.", "label": "source_routing"}
+{"text": "Implement Segment Routing over IPv6 (SRv6).", "label": "source_routing"}
+{"text": "Forward this packet based on the next segment in the SRH (Segment Routing Header).", "label": "source_routing"}
+{"text": "The path is encoded in the packet itself.", "label": "source_routing"}
+{"text": "First, send the packet to the firewall, then to the WAN optimizer, then to the gateway.", "label": "source_routing"}
+{"text": "Use source routing for traffic engineering purposes.", "label": "source_routing"}
+{"text": "Pop the top MPLS label and forward based on the next label.", "label": "source_routing"}
+{"text": "The ingress router imposes the path on the packet.", "label": "source_routing"}
+{"text": "Implement a network that supports explicit path forwarding.", "label": "source_routing"}
+{"text": "The application wants to control the network path.", "label": "source_routing"}
+{"text": "Decrement the 'segments left' pointer in the SRH.", "label": "source_routing"}
+{"text": "This is a source-routed packet; ignore the normal routing table.", "label": "source_routing"}
+{"text": "Implement TI-LFA (Topology-Independent Loop-Free Alternate) using segment routing.", "label": "source_routing"}
+{"text": "Steer low-latency traffic onto a path with specific characteristics.", "label": "source_routing"}
+{"text": "Build a network service header (NSH) for service chaining.", "label": "source_routing"}
+{"text": "The packet must visit nodes A, B, and C in that order.", "label": "source_routing"}
+{"text": "Implement SR-MPLS (Segment Routing over MPLS).", "label": "source_routing"}
+{"text": "The forwarding decision should be based on the active SID.", "label": "source_routing"}
+{"text": "Use a binding SID to compress a long segment list.", "label": "source_routing"}
+{"text": "The packet carries its own routing instructions.", "label": "source_routing"}
+{"text": "This path is defined by a sequence of SIDs.", "label": "source_routing"}
+{"text": "Implement a controller that calculates and installs source-routed paths.", "label": "source_routing"}
+{"text": "The network should be programmable from the edge.", "label": "source_routing"}
+{"text": "Set the destination address of the IPv6 header to the next segment.", "label": "source_routing"}
+{"text": "Create a source routing policy for a specific application.", "label": "source_routing"}
+{"text": "Use source routing to force traffic through a monitoring device.", "label": "source_routing"}
+{"text": "The router needs to process the IPv6 Routing Header Type 4 (SRH).", "label": "source_routing"}
+{"text": "Implement an anycast SID for service resilience.", "label": "source_routing"}
+{"text": "The path should be determined at the source, not by intermediate hops.", "label": "source_routing"}
+{"text": "Forward the packet according to the label stack.", "label": "source_routing"}
+{"text": "Implement a performance-based routing system using segment routing.", "label": "source_routing"}
+{"text": "The network needs to support application-aware routing.", "label": "source_routing"}
+{"text": "This is a request to set up a source-routed path.", "label": "source_routing"}
+{"text": "The source node has selected the end-to-end path.", "label": "source_routing"}
+{"text": "The forwarding plane should be simplified by moving complexity to the edge.", "label": "source_routing"}
+{"text": "Create a service chain for all guest traffic.", "label": "source_routing"}
+{"text": "Implement SRv6 with micro-SIDs.", "label": "source_routing"}
+{"text": "The packet contains an explicit route.", "label": "source_routing"}
+{"text": "The router should perform a 'T.Encaps' or 'T.Insert' behavior for SRv6.", "label": "source_routing"}
+{"text": "Use source routing to enforce network slice isolation.", "label": "source_routing"}
+{"text": "The path is specified as a list of interface IDs.", "label": "source_routing"}
+{"text": "Implement a path computation element (PCE) for segment routing.", "label": "source_routing"}
+{"text": "The source router is responsible for path selection.", "label": "source_routing"}
+{"text": "Parse the Ethernet frame and extract the source and destination MAC addresses", "label": "default"}
+{"text": "Process a basic IPv4 packet, extracting header fields for a routing lookup", "label": "default"}
+{"text": "Implement simple packet forwarding based on a destination MAC address table", "label": "default"}
+{"text": "Extract VLAN tags from 802.1Q frames for virtual network isolation", "label": "default"}
+{"text": "Parse the TCP header, extracting the source port, destination port, and flags", "label": "default"}
+{"text": "Implement a basic packet processor handling Ethernet, IPv4, and TCP layers", "label": "default"}
+{"text": "Extract and validate the packet length field, ensuring the frame is well-formed", "label": "default"}
+{"text": "Parse nested headers, extracting both outer and inner protocol information", "label": "default"}
+{"text": "Implement conditional header parsing based on the EtherType or protocol field", "label": "default"}
+{"text": "Extract IPv6 extension headers in a chain, following next-header pointers", "label": "default"}
+{"text": "Parse an MPLS label stack, handling multiple levels of encapsulation", "label": "default"}
+{"text": "Implement a sub-parser for handling variable-length protocol options", "label": "default"}
+{"text": "Extract packet metadata, including the ingress port and timestamp", "label": "default"}
+{"text": "Parse the GRE header, extracting the key and sequence number fields", "label": "default"}
+{"text": "Implement header field extraction for a match-action pipeline", "label": "default"}
+{"text": "Duplicate headers for packet modification, preserving the original fields", "label": "default"}
+{"text": "Extract the 5-tuple flow identifier from IP and transport headers", "label": "default"}
+{"text": "Parse the VXLAN header, extracting the VNI for virtual network identification", "label": "default"}
+{"text": "Implement a header deparser, reconstructing the modified packet for transmission", "label": "default"}
+{"text": "Extract custom protocol headers using a programmable parser", "label": "default"}
+{"text": "Perform standard packet processing.", "label": "default"}
+{"text": "Forward the packet based on its destination address.", "label": "default"}
+{"text": "Look up the destination MAC address in the forwarding table.", "label": "default"}
+{"text": "Parse the packet headers.", "label": "default"}
+{"text": "What is the EtherType of this frame?", "label": "default"}
+{"text": "Read the destination IP address from the packet.", "label": "default"}
+{"text": "Decrement the TTL field in the IP header.", "label": "default"}
+{"text": "This is a standard IP packet; forward it normally.", "label": "default"}
+{"text": "Extract the source and destination ports.", "label": "default"}
+{"text": "The packet has arrived on interface eth1.", "label": "default"}
+{"text": "Rewrite the destination MAC address to the next hop's MAC.", "label": "default"}
+{"text": "Send the packet out on interface eth2.", "label": "default"}
+{"text": "This is just a regular packet, nothing special.", "label": "default"}
+{"text": "Handle this packet according to the forwarding rules.", "label": "default"}
+{"text": "The parser needs to identify the protocol in the IP header.", "label": "default"}
+{"text": "Look up the longest prefix match for the destination IP.", "label": "default"}
+{"text": "The basic forwarding logic is to switch based on the MAC table.", "label": "default"}
+{"text": "Extract the VLAN ID from the 802.1Q tag.", "label": "default"}
+{"text": "The packet processing pipeline starts with the parser.", "label": "default"}
+{"text": "This is a simple Layer 2 switch.", "label": "default"}
+{"text": "Determine the egress port for this packet.", "label": "default"}
+{"text": "The deparser reassembles the packet before it is sent.", "label": "default"}
+{"text": "Extract the fields needed for the match-action tables.", "label": "default"}
+{"text": "This is a unicast packet.", "label": "default"}
+{"text": "The default action is to drop the packet.", "label": "default"}
+{"text": "Implement a basic router.", "label": "default"}
+{"text": "Get the next hop from the routing table.", "label": "default"}
+{"text": "Rewrite the source MAC address to be this interface's MAC.", "label": "default"}
+{"text": "The packet is not tagged with a VLAN.", "label": "default"}
+{"text": "Parse the UDP header.", "label": "default"}
+{"text": "The next protocol is TCP.", "label": "default"}
+{"text": "This is just standard IP forwarding.", "label": "default"}
+{"text": "Handle the packet.", "label": "default"}
+{"text": "The switch should learn the source MAC address of incoming frames.", "label": "default"}
+{"text": "If the destination MAC is not in the table, flood the packet.", "label": "default"}
+{"text": "The parser should be able to handle double-tagged VLAN packets (QinQ).", "label": "default"}
+{"text": "The system's primary function is to forward packets.", "label": "default"}
+{"text": "Identify the key fields from the packet for processing.", "label": "default"}
+{"text": "This is a simple store-and-forward operation.", "label": "default"}
+{"text": "The router just needs to look at the IP header.", "label": "default"}
+{"text": "Implement the core logic of a network switch.", "label": "default"}
+{"text": "Parse up to the transport layer header.", "label": "default"}
+{"text": "This packet should be forwarded based on standard procedures.", "label": "default"}
+{"text": "The default behavior is to act as a simple L3 router.", "label": "default"}
+{"text": "Is this an IPv4 or IPv6 packet?", "label": "default"}
+{"text": "Extract the 5-tuple.", "label": "default"}
+{"text": "The forwarding information base (FIB) lookup is the next step.", "label": "default"}
+{"text": "This is a plain vanilla packet.", "label": "default"}
+{"text": "The switch operates at Layer 2.", "label": "default"}
+{"text": "The router needs to find the correct egress interface.", "label": "default"}
+{"text": "This is a standard forwarding decision.", "label": "default"}
+{"text": "The system should process packets according to their headers.", "label": "default"}
+{"text": "The parser needs to extract the IP protocol number.", "label": "default"}
