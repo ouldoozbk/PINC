@@ -100,7 +100,7 @@ VALIDATION_TIMEOUT = 180 # How long to wait before timing out a connection
 
 Navigate to validation_module directory and run:
 ```Bash
-uvicorn main:app --host 0.0.0.0 
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 For your own convenience, we recommend to make sure the terminal with the server is running as a standalone process via a utility like tmux, which would allow you
@@ -113,6 +113,8 @@ To allow your machine to accept requests and redirect the to the correct port, i
 cloudflared tunnel --url http://localhost:8000
 ```
 
+Running cloudflared will give you a link that will allow you to access the server.
+
 **Option 2: Running the Server on Cloud Provider**
 
 Navigate to validation_module directory and run:
@@ -122,7 +124,34 @@ uvicorn main:app --host 0.0.0.0
 
 After this, make sure you configure your cloud instance to allow incoming packets by allowing ingree and outgress tcp/udp connections. 
 
+**Checking if the Server Works:**:
+You can use ant software or the terminal to make an HTTP request of the following form:
+
+In the terminal: (OS independent)
+
+Local Host:
+``` bash
+curl -X POST http://[CLOUD FLARE URL]/validate \
+     -H "Content-Type: application/json" \
+     -d '{"code": ""}'
+```
+
+Cloud:
+``` bash
+curl -X POST http://[SERVER IP]:8000/validate \
+     -H "Content-Type: application/json" \
+     -d '{"code": ""}'
+```
+
+
 ## 3. Using the Jupyter Notebook to Run the Model
+
+We use 1xA100 GPU through [Colab Pro](https://colab.research.google.com/) to run inference on the model. The model needs at least 40GB of VRAM to run. You can always upload the .ipynb file provided in this repository onto colab or equivalently duplicate [this notebook](https://colab.research.google.com/drive/1sE8-aAZqzfzbg7eIlVfoLVwj4UKfCjVR?usp=sharing).
+
+Before proceeding to do inference, please run all cells under "1 - Define Base Classes and Functions":
+<img width="1855" height="798" alt="image" src="https://github.com/user-attachments/assets/c29d6f1d-7ff5-41ed-bfbb-583e76354d6f" />
+
+
 
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
