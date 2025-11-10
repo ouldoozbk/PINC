@@ -148,10 +148,14 @@ curl -X POST http://[SERVER IP]:8000/validate \
 
 We use 1xA100 GPU through [Colab Pro](https://colab.research.google.com/) to run inference on the model. The model needs at least 40GB of VRAM to run. You can always upload the .ipynb file provided in this repository onto colab or equivalently duplicate [this notebook](https://colab.research.google.com/drive/1sE8-aAZqzfzbg7eIlVfoLVwj4UKfCjVR?usp=sharing).
 
+**Initializing all necessary classes:**
+
 Before proceeding to do inference, please run all cells under "1 - Define Base Classes and Functions":
 <img width="1855" height="798" alt="image" src="https://github.com/user-attachments/assets/c29d6f1d-7ff5-41ed-bfbb-583e76354d6f" />
 
+**Example Setup:**
 
+We have provided an example setup that matches that of used in our experiments so that once you've ran all the necessary cells that define core classes (like ModelLoader, PromptBuilder, ...), you can start repeating the experiments or doing inference on the model.
 
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
