@@ -297,6 +297,38 @@ sampling_params = SamplingParams(
 
 ```
 
+**6. LLM Generations:**
+
+The following code snippet generates outputs from the model and saves them into results variable.
+
+``` Python
+model_generator = LLMGenerator(model, tokenizer, sampling_params)
+results = model_generator.generate(llm_ready_prompts)
+```
+
+Note that for testing purposes, it might be more convenient to simply prompt the model directly by using:
+``` Python
+model.generate( ["your prompt 1", "your prompt 2"], sampling_params )
+```
+and the LLMGenerator is merely a wrapper that sanitizes the output and extracts only p4 code, while the model might
+produce some other output like explanations.
+
+**7. Evaluation**:
+The `Evaluator` class allows you to communicate with the server you have started earlier by sending it LLM generations and recording the validation errors, stdout, and status. This class accepts the following in its constructor:
+
+- **Server IP:** your server IP (or URL in case of Cloudflared URL)
+- **Server PORT:** server PORT (or None in case of Cloudflared URL)
+- **Endpoint**: only /validate is supported
+
+Once the Evaluator instance is created, we can `evaluate_generations(...)` by passing the LLM produced generation (`results` variable in the example below), and the intents used (`test_intents` or ["your prompt 1", "your prompt 2"] in example above.)
+
+```
+validation_endpoint = EndPoint("34.61.128.41", 8000, "/validate")
+
+p4_evaluator = Evaluator(validation_endpoint)
+prompt_validation_counts, all_results = p4_evaluator.evaluate_generations(results, test_intents)
+```
+
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
 2. Add a part that rells the user to git clone this first
