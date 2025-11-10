@@ -189,6 +189,50 @@ models = {"fine_tuned_model": "SassyTeckel/p4coder", "base_model": "deepseek-ai/
 model, tokenizer = ModelLoader.get_instance(models["fine_tuned_model"], token= ... HUGGING FACE TOKEN ...).values()
 ```
 
+**3. Callback function with Prompt Structure**
+You will provide a template to the PromptBuilder class instance on how to form the prompt. The callback MUST support the following arguments:
+
+Arguments the callback accepts:
+- **user_intent:** (srting) it's the actual user prompt like "drop all packets coming to port 5"
+- **yang_model:** (string) YANG model defines the data structure and constraint
+- **yang_data:** (string) current configuration of the network
+- **few_shot_examples:** (string array or None): set of few-shot-examples, which could be passed manually, chosen by the classifier, or the default ones could be used. 
+
+Note however that you're free to exclude any of these arguments by simply accepting it as an argument but never using it. This might be helpful for for experimentation purposes. 
+
+```` python
+def prompt_format_fn(user_intent, yang_model, yang_data, few_shot_examples):
+
+  example_prompt_format = f"""
+You are generating one compilable P4_16 program for BMv2 v1model.
+
+TASK:
+Implement the network intent: {user_intent}
+
+```
+YANG MODEL SCHEMA:
+The following YANG model defines the data structure and constraints:
+```yang
+{yang_model}
+```
+
+CURRENT NETWORK CONFIGURATION:
+```json
+{yang_data}
+
+{"EXAMPLES:" if few_shot_examples else ""}
+{"Here are examples of similar network intents and their P4 implementations:" if few_shot_examples else ""}
+
+{chr(10).join([
+    f"Example {i+1}:{chr(10)}Intent: {example.annotation}{chr(10)}Implementation:{chr(10)}```p4{chr(10)}{example.code}{chr(10)}```{chr(10)}"
+    for i, example in enumerate(few_shot_examples)
+]) if few_shot_examples else ""}
+
+... [REST OF THE PROMPT OMITTED! ] ...
+"""
+  return example_prompt_format
+````
+
 
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
