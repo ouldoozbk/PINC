@@ -190,6 +190,7 @@ model, tokenizer = ModelLoader.get_instance(models["fine_tuned_model"], token= .
 ```
 
 **3. Callback function with Prompt Structure**
+
 You will provide a template to the PromptBuilder class instance on how to form the prompt. The callback MUST support the following arguments:
 
 Arguments the callback accepts:
@@ -262,14 +263,40 @@ class PromptBuilder:
 
 
 
-Below is an example where we let the classifier pick our few-shot examples: 
-```
+Below is an example of how prompt builder class is initialized and configured such that the classifier chooses the few-shot examples. Additionally, we can 
+see how 2 intents in `my_intents` variable are passed through the prompt_builder by calling it to give us `llm_ready_prompts` variable, which 
+builds the prompt that will be passed to the llm. You can inspect the output prompt (created by PromptBuilder) by printing it. This is really helpful for debugging purposes.
+
+```python
 pipeline_model = load_classifier() 
 prompt_builder = PromptBuilder(tokenizer, prompt_format_fn, "classifier", few_shot_examples=None, pipeline_model=pipeline_model)
-```
 
+my_intents = ["drop all packets coming to port 5", "redict all traffic to port 3"]
+llm_ready_prompts = prompt_builder(my_intents)
+
+print(llm_ready_prompts[0]) # print one of the examples to inspect what the prompt will look like. 
+
+```
+**5. Sampling Parameters:**
+
+In the notebook, you can modify sampling parameters. Full list is available in vLLM documention: [Sampling Parameters List](https://docs.vllm.ai/en/v0.6.4/dev/sampling_params.html)
+
+In the code, following sampling parameters were used to report experiments:
+```Python
+N = 10 # Number of generations
+
+sampling_params = SamplingParams(
+    n = N,
+    temperature=0.3,
+    max_tokens=8192,
+    min_tokens=64,
+    stop=["</p4>"],
+    repetition_penalty=1.1,
+    top_p=0.9,
+)
+
+```
 
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
 2. Add a part that rells the user to git clone this first
-3. Add a recommendation to use Linux or WSL
