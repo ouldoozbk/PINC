@@ -157,6 +157,39 @@ Before proceeding to do inference, please run all cells under "1 - Define Base C
 
 We have provided an example setup that matches that of used in our experiments so that once you've ran all the necessary cells that define core classes (like ModelLoader, PromptBuilder, ...), you can start repeating the experiments or doing inference on the model.
 
+We of course recommend familiarizing yourself with these classes to be aware of what functionality is supported.
+
+**Example Setup:**
+We have provided an example setup that matches that of used in our experiments so that once you've ran all the necessary cells that define core classes (like ModelLoader, PromptBuilder, ...), you can start repeating the experiments or doing inference on the model. The example set up does the following:
+1. Loads our test split of the dataset
+2. Loads the fine-tuned model and tokenizer using ModelLoader class
+3. Sets up a callback function to define structure of the prompt passed to the LLM.
+4. Shows how you can load and pass a classifier that allows you to choose few-shot examples dynamically
+5. Configures the sampling params (matching the experiments in the paper)
+6. Makes the model generate code for test split and save it to the disk
+7. Evaluates the code using the server
+8. Saves the evaluation results to disk
+9. Computes compile rate and pass@k.
+----
+**1. Loading the dataset** is done via `load_ds()["train"]` call. Note, here 'train' is merely an artifact of how HuggingFace works and is actually **THE FULL** dataset, not only the training portion. This is then
+passed to `train_val_test_split(...)` function that makes the train, validation and test split. Since the random seed is fixed to 42, it matches that of our testing set. In Colab Code:
+
+``` python
+test_ds = train_val_test_split(load_ds()["train"])["test"]
+test_intents = list(test_ds["annotation"])
+```
+
+**2. Loading the fine-tuned model:**
+
+This code in the notebook allows you to choose between our fine-tuned model or the base model. Additionally, you can use any other
+HuggingFace model by simply passing a corresponding model name into the checkpoint argument of `ModelLoader.get_instance(checkpoint = ..., token = ...)`
+``` python
+models = {"fine_tuned_model": "SassyTeckel/p4coder", "base_model": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"}
+
+model, tokenizer = ModelLoader.get_instance(models["fine_tuned_model"], token= ... HUGGING FACE TOKEN ...).values()
+```
+
+
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
 2. Add a part that rells the user to git clone this first
