@@ -232,6 +232,41 @@ CURRENT NETWORK CONFIGURATION:
 """
   return example_prompt_format
 ````
+**4. Choice of few-shot examples and using the classifier:**
+
+PromptBuilder constructor accepts the following arguments:
+```
+class PromptBuilder:
+  def __init__(self,
+               tokenizer, # tokenizer of the model
+               prompt_format: Callable[[str, str, str, List[FewShotExample]], str], # callback described earlier
+               few_shot_strategy: Literal["classifier", "default", "passed"], 
+               few_shot_examples: list[FewShotExample] | None = None,
+               pipeline_model=None
+  ):
+```
+- **prompt_format:** the callback function used to specify prompt format.
+
+- **few_shot_examples:** this argument allows you to pass a set of few-show examples, which are instances of FewShotExample class. Here's an example:
+  ```python
+  few_shot_examples = [
+    FewShotExamples( "intent 1", "code ..." ),
+    FewShotExamples("intent 2", "code...")
+  ]
+  ```
+
+- **few_shot_strategy:** this argument allows you to choose between one of three options:
+  - `classifier`: examples are chosen dynamically based on the top-2 classes assigned to the prompt
+  - `default`: default few-show examples are chosen
+  - `passed`: few shot examples are used that you pass in **few_shot_examples** argument to PromptBuilder class.
+
+
+
+Below is an example where we let the classifier pick our few-shot examples: 
+```
+pipeline_model = load_classifier() 
+prompt_builder = PromptBuilder(tokenizer, prompt_format_fn, "classifier", few_shot_examples=None, pipeline_model=pipeline_model)
+```
 
 
 ## 4. TODOs:
