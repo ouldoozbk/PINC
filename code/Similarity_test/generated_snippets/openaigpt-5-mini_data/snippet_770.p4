@@ -1,0 +1,46 @@
+/work_space/59dc7344-9768-4ca5-95af-360a26b964be.p4(143): [--Werror=not-found] error: clone_ingress_pkt_to_egress: declaration not found
+        clone_ingress_pkt_to_egress(1);
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Internal error: In file: /p4c/frontends/p4/typeChecking/readOnlyTypeInference.cpp:19
+P4Testgen Bug: /usr/local/share/p4c/p4include/v1model.p4(57): At this point in the compilation typechecking should not infer new types anymore, but it did: node bit<32> __v1model_version = 20180101 changed to bit<32> __v1model_version = (bit<32>)20180101;
+const bit<32> __v1model_version = 20180101;
+              ^^^^^^^^^^^^^^^^^
+/usr/local/share/p4c/p4include/v1model.p4(57)
+const bit<32> __v1model_version = 20180101;
+              ^^^^^^^^^^^^^^^^^
+
+Please submit a bug report with your code.
++ p4c --target bmv2 --arch v1model --p4runtime-files 59dc7344-9768-4ca5-95af-360a26b964be.p4info.txtpb /work_space/59dc7344-9768-4ca5-95af-360a26b964be.p4
+/work_space/59dc7344-9768-4ca5-95af-360a26b964be.p4(143): [--Werror=not-found] error: clone_ingress_pkt_to_egress: declaration not found
+        clone_ingress_pkt_to_egress(1);
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
++ /bin/rm -f ss-log.txt
++ echo ''
++ simple_switch_grpc --log-file ss-log --log-flush --dump-packet-data 10000 -i 0@veth0 -i 1@veth2 -i 2@veth4 -i 3@veth6 -i 4@veth8 -i 5@veth10 -i 6@veth12 -i 7@veth14 --no-p4
++ echo 'Started simple_switch_grpc.  Waiting 2 seconds before starting PTF test ...'
++ for i in {1..20}
++ nc -z localhost 9559
++ sleep 0.1
++ for i in {1..20}
++ nc -z localhost 9559
++ sleep 0.1
++ for i in {1..20}
++ nc -z localhost 9559
++ echo 'simple_switch_grpc is ready'
++ break
+++ which ptf
++ /usr/local/bin/ptf --pypath /root/p4c/tools/ptf -i 0@veth1 -i 1@veth3 -i 2@veth5 -i 3@veth7 -i 4@veth9 -i 5@veth11 -i 6@veth13 -i 7@veth15 '--test-params=grpcaddr='\''localhost:9559'\'';p4info='\''59dc7344-9768-4ca5-95af-360a26b964be.p4info.txtpb'\'';config='\''59dc7344-9768-4ca5-95af-360a26b964be.json'\''' --test-dir out-p4testgen
+/usr/local/bin/ptf:19: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+  import imp
+21:42:06.609  root      : CRITICAL: test-spec element standard did not match any tests
++ echo ''
++ echo 'PTF test finished.  Waiting 2 seconds before killing simple_switch_grpc ...'
++ pkill --signal 9 --list-name simple_switch
++ echo ''
++ echo 'Verifying that there are no simple_switch_grpc processes running any longer in 4 seconds ...'
++ for i in {1..20}
++ pgrep -f simple_switch_grpc
++ echo 'simple_switch_grpc terminated'
++ break
++ ps axguwww
++ grep simple_switch

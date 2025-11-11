@@ -1,0 +1,249 @@
+Found p4c base_test.py package: /root/p4c/tools/ptf/base_test.py
+Running p4testgen on /work_space/0c0497e7-bb74-4667-9975-39c3e6c26cab.p4 ...
+Test cases generated in: out-p4testgen
+
+Started simple_switch_grpc.  Waiting 2 seconds before starting PTF test ...
+Calling target program-options parser
+Adding interface veth0 as port 0
+Adding interface veth2 as port 1
+Adding interface veth4 as port 2
+Adding interface veth6 as port 3
+Adding interface veth8 as port 4
+Adding interface veth10 as port 5
+Adding interface veth12 as port 6
+Adding interface veth14 as port 7
+simple_switch_grpc is ready
+
+******************************************
+ATTENTION: SOME TESTS DID NOT PASS!!!
+
+The following tests failed:
+Test9
+
+******************************************
+
+PTF test finished.  Waiting 2 seconds before killing simple_switch_grpc ...
+
+Verifying that there are no simple_switch_grpc processes running any longer in 4 seconds ...
+simple_switch_grpc terminated
+root          86  0.0  0.0      0     0 ?        Z    04:43   0:00 [simple_switch_g] <defunct>
+root         208  0.0  0.0      0     0 ?        Z    04:45   0:00 [simple_switch_g] <defunct>
+root         344  0.0  0.0      0     0 ?        Z    04:50   0:00 [simple_switch_g] <defunct>
+root         511  0.0  0.0      0     0 ?        Z    04:51   0:00 [simple_switch_g] <defunct>
+root         609  0.0  0.0      0     0 ?        Z    04:52   0:00 [simple_switch_g] <defunct>
+root         707  0.0  0.0      0     0 ?        Z    04:53   0:00 [simple_switch_g] <defunct>
+root         805  0.0  0.0      0     0 ?        Z    04:54   0:00 [simple_switch_g] <defunct>
+root         905  0.0  0.0      0     0 ?        Z    04:54   0:00 [simple_switch_g] <defunct>
+root        1003  0.0  0.0      0     0 ?        Z    04:55   0:00 [simple_switch_g] <defunct>
+root        1101  0.0  0.0      0     0 ?        Z    04:55   0:00 [simple_switch_g] <defunct>
+root        1201  0.0  0.0      0     0 ?        Z    04:55   0:00 [simple_switch_g] <defunct>
+root        1301  0.0  0.0      0     0 ?        Z    04:56   0:00 [simple_switch_g] <defunct>
+root        1399  0.0  0.0      0     0 ?        Z    04:57   0:00 [simple_switch_g] <defunct>
+root        1495  0.0  0.0      0     0 ?        Z    04:57   0:00 [simple_switch_g] <defunct>
+root        1591  0.0  0.0      0     0 ?        Z    04:58   0:00 [simple_switch_g] <defunct>
+root        1687  0.0  0.0      0     0 ?        Z    04:59   0:00 [simple_switch_g] <defunct>
+root        1783  0.0  0.0      0     0 ?        Z    04:59   0:00 [simple_switch_g] <defunct>
+root        1881  0.0  0.0      0     0 ?        Z    05:00   0:00 [simple_switch_g] <defunct>
+root        2015  0.0  0.0      0     0 ?        Z    05:02   0:00 [simple_switch_g] <defunct>
+root        2113  0.0  0.0      0     0 ?        Z    05:03   0:00 [simple_switch_g] <defunct>
+root        2211  0.0  0.0      0     0 ?        Z    05:04   0:00 [simple_switch_g] <defunct>
+root        2309  0.0  0.0      0     0 ?        Z    05:04   0:00 [simple_switch_g] <defunct>
+root        2405  0.0  0.0      0     0 ?        Z    05:05   0:00 [simple_switch_g] <defunct>
+root        2503  0.0  0.0      0     0 ?        Z    05:05   0:00 [simple_switch_g] <defunct>
+root        2601  0.0  0.0      0     0 ?        Z    05:06   0:00 [simple_switch_g] <defunct>
+root        2697  0.0  0.0      0     0 ?        Z    05:06   0:00 [simple_switch_g] <defunct>
+root        2833  0.0  0.0      0     0 ?        Z    05:07   0:00 [simple_switch_g] <defunct>
+root        2931  0.0  0.0      0     0 ?        Z    05:08   0:00 [simple_switch_g] <defunct>
+root        3098  0.0  0.0      0     0 ?        Z    05:08   0:00 [simple_switch_g] <defunct>
+root        3196  0.0  0.0      0     0 ?        Z    05:09   0:00 [simple_switch_g] <defunct>
+root        3294  0.0  0.0      0     0 ?        Z    05:10   0:00 [simple_switch_g] <defunct>
+root        3441  0.0  0.0      0     0 ?        Z    05:11   0:00 [simple_switch_g] <defunct>
+root        3541  0.0  0.0      0     0 ?        Z    05:12   0:00 [simple_switch_g] <defunct>
+root        3708  0.0  0.0      0     0 ?        Z    05:13   0:00 [simple_switch_g] <defunct>
+root        3850  0.0  0.0      0     0 ?        Z    05:14   0:00 [simple_switch_g] <defunct>
+root        4017  0.0  0.0      0     0 ?        Z    05:15   0:00 [simple_switch_g] <defunct>
+root        4184  0.0  0.0      0     0 ?        Z    05:19   0:00 [simple_switch_g] <defunct>
+root        4280  0.0  0.0      0     0 ?        Z    05:20   0:00 [simple_switch_g] <defunct>
+root        4378  0.0  0.0      0     0 ?        Z    05:21   0:00 [simple_switch_g] <defunct>
+root        4476  0.0  0.0      0     0 ?        Z    05:22   0:00 [simple_switch_g] <defunct>
+root        4610  0.0  0.0      0     0 ?        Z    05:23   0:00 [simple_switch_g] <defunct>
+root        4775  0.0  0.0      0     0 ?        Z    05:24   0:00 [simple_switch_g] <defunct>
+root        4942  0.0  0.0      0     0 ?        Z    05:25   0:00 [simple_switch_g] <defunct>
+root        5040  0.0  0.0      0     0 ?        Z    05:26   0:00 [simple_switch_g] <defunct>
+root        5207  0.0  0.0      0     0 ?        Z    05:26   0:00 [simple_switch_g] <defunct>
+root        5359  0.0  0.0      0     0 ?        Z    05:27   0:00 [simple_switch_g] <defunct>
+root        5459  0.0  0.0      0     0 ?        Z    05:32   0:00 [simple_switch_g] <defunct>
+root        5555  0.0  0.0      0     0 ?        Z    05:32   0:00 [simple_switch_g] <defunct>
+root        5689  0.0  0.0      0     0 ?        Z    05:33   0:00 [simple_switch_g] <defunct>
+root        5826  0.0  0.0      0     0 ?        Z    05:34   0:00 [simple_switch_g] <defunct>
+root        5962  0.0  0.0      0     0 ?        Z    05:34   0:00 [simple_switch_g] <defunct>
+root        6062  0.0  0.0      0     0 ?        Z    05:35   0:00 [simple_switch_g] <defunct>
+root        6184  0.0  0.0      0     0 ?        Z    05:35   0:00 [simple_switch_g] <defunct>
+root        6320  0.0  0.0      0     0 ?        Z    05:36   0:00 [simple_switch_g] <defunct>
+root        6456  0.0  0.0      0     0 ?        Z    05:37   0:00 [simple_switch_g] <defunct>
+root        6552  0.0  0.0      0     0 ?        Z    05:37   0:00 [simple_switch_g] <defunct>
+root        6652  0.0  0.0      0     0 ?        Z    05:37   0:00 [simple_switch_g] <defunct>
+root        6752  0.0  0.0      0     0 ?        Z    05:37   0:00 [simple_switch_g] <defunct>
+root        6850  0.0  0.0      0     0 ?        Z    05:38   0:00 [simple_switch_g] <defunct>
+root        6948  0.0  0.0      0     0 ?        Z    05:38   0:00 [simple_switch_g] <defunct>
+root        7046  0.0  0.0      0     0 ?        Z    05:39   0:00 [simple_switch_g] <defunct>
+root        7184  0.0  0.0      0     0 ?        Z    05:40   0:00 [simple_switch_g] <defunct>
+root        7284  0.0  0.0      0     0 ?        Z    05:40   0:00 [simple_switch_g] <defunct>
+root        7382  0.0  0.0      0     0 ?        Z    05:41   0:00 [simple_switch_g] <defunct>
+root        7551  0.0  0.0      0     0 ?        Z    05:41   0:00 [simple_switch_g] <defunct>
+root        7689  0.0  0.0      0     0 ?        Z    05:42   0:00 [simple_switch_g] <defunct>
+root        7789  0.0  0.0      0     0 ?        Z    05:42   0:00 [simple_switch_g] <defunct>
+root        7885  0.0  0.0      0     0 ?        Z    05:42   0:00 [simple_switch_g] <defunct>
+root        7985  0.0  0.0      0     0 ?        Z    05:42   0:00 [simple_switch_g] <defunct>
+root        8083  0.0  0.0      0     0 ?        Z    05:42   0:00 [simple_switch_g] <defunct>
+root        8248  0.0  0.0      0     0 ?        Z    05:43   0:00 [simple_switch_g] <defunct>
+root        8346  0.0  0.0      0     0 ?        Z    05:43   0:00 [simple_switch_g] <defunct>
+root        8444  0.0  0.0      0     0 ?        Z    05:43   0:00 [simple_switch_g] <defunct>
+root        8542  0.0  0.0      0     0 ?        Z    05:43   0:00 [simple_switch_g] <defunct>
+root        8678  0.0  0.0      0     0 ?        Z    05:44   0:00 [simple_switch_g] <defunct>
+root        8816  0.0  0.0      0     0 ?        Z    05:44   0:00 [simple_switch_g] <defunct>
+root        8952  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9050  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9148  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9246  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9342  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9440  0.0  0.0      0     0 ?        Z    05:45   0:00 [simple_switch_g] <defunct>
+root        9536  0.0  0.0      0     0 ?        Z    05:46   0:00 [simple_switch_g] <defunct>
+root        9636  0.0  0.0      0     0 ?        Z    05:46   0:00 [simple_switch_g] <defunct>
+root        9804  0.0  0.0      0     0 ?        Z    05:46   0:00 [simple_switch_g] <defunct>
+root        9938  0.0  0.0      0     0 ?        Z    05:46   0:00 [simple_switch_g] <defunct>
+root       10072  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10237  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10387  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10485  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10621  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10719  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10817  0.0  0.0      0     0 ?        Z    05:47   0:00 [simple_switch_g] <defunct>
+root       10953  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11051  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11149  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11247  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11345  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11443  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11580  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11676  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11770  0.0  0.0      0     0 ?        Z    05:48   0:00 [simple_switch_g] <defunct>
+root       11866  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       11995  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12165  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12263  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12390  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12540  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12638  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12736  0.0  0.0      0     0 ?        Z    05:49   0:00 [simple_switch_g] <defunct>
+root       12872  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       12970  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13137  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13235  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13333  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13469  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13606  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13746  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13844  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       13977  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       14075  0.0  0.0      0     0 ?        Z    05:50   0:00 [simple_switch_g] <defunct>
+root       14173  0.0  0.0      0     0 ?        Z    05:51   0:00 [simple_switch_g] <defunct>
+root       14313  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       14446  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       14596  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       14738  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       14836  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       14972  0.0  0.0      0     0 ?        Z    05:52   0:00 [simple_switch_g] <defunct>
+root       15119  0.0  0.0      0     0 ?        Z    05:53   0:00 [simple_switch_g] <defunct>
+root       15217  0.0  0.0      0     0 ?        Z    05:53   0:00 [simple_switch_g] <defunct>
+root       15351  0.0  0.0      0     0 ?        Z    05:53   0:00 [simple_switch_g] <defunct>
+root       15447  0.0  0.0      0     0 ?        Z    05:53   0:00 [simple_switch_g] <defunct>
+root       15585  0.0  0.0      0     0 ?        Z    05:54   0:00 [simple_switch_g] <defunct>
+root       15752  0.0  0.0      0     0 ?        Z    05:54   0:00 [simple_switch_g] <defunct>
+root       15850  0.0  0.0      0     0 ?        Z    05:54   0:00 [simple_switch_g] <defunct>
+root       15950  0.0  0.0      0     0 ?        Z    05:55   0:00 [simple_switch_g] <defunct>
+root       16048  0.0  0.0      0     0 ?        Z    05:55   0:00 [simple_switch_g] <defunct>
+root       16198  0.0  0.0      0     0 ?        Z    05:55   0:00 [simple_switch_g] <defunct>
+root       16336  0.0  0.0      0     0 ?        Z    05:56   0:00 [simple_switch_g] <defunct>
+root       16473  0.0  0.0      0     0 ?        Z    05:56   0:00 [simple_switch_g] <defunct>
+root       16600  0.0  0.0      0     0 ?        Z    05:56   0:00 [simple_switch_g] <defunct>
+root       16698  0.0  0.0      0     0 ?        Z    05:57   0:00 [simple_switch_g] <defunct>
+root       16834  0.0  0.0      0     0 ?        Z    05:58   0:00 [simple_switch_g] <defunct>
+root       16934  0.0  0.0      0     0 ?        Z    05:58   0:00 [simple_switch_g] <defunct>
+root       17032  0.0  0.0      0     0 ?        Z    05:59   0:00 [simple_switch_g] <defunct>
+root       17130  0.0  0.0      0     0 ?        Z    06:00   0:00 [simple_switch_g] <defunct>
+root       17230  0.0  0.0      0     0 ?        Z    06:00   0:00 [simple_switch_g] <defunct>
+root       17397  0.0  0.0      0     0 ?        Z    06:00   0:00 [simple_switch_g] <defunct>
+root       17493  0.0  0.0      0     0 ?        Z    06:01   0:00 [simple_switch_g] <defunct>
+root       17629  0.0  0.0      0     0 ?        Z    06:02   0:00 [simple_switch_g] <defunct>
+root       17727  0.0  0.0      0     0 ?        Z    06:03   0:00 [simple_switch_g] <defunct>
+root       17861  0.0  0.0      0     0 ?        Z    06:03   0:00 [simple_switch_g] <defunct>
+root       17959  0.0  0.0      0     0 ?        Z    06:03   0:00 [simple_switch_g] <defunct>
+root       18057  0.0  0.0      0     0 ?        Z    06:03   0:00 [simple_switch_g] <defunct>
+root       18193  0.0  0.0      0     0 ?        Z    06:05   0:00 [simple_switch_g] <defunct>
+root       18358  0.0  0.0      0     0 ?        Z    06:06   0:00 [simple_switch_g] <defunct>
+root       18494  0.0  0.0      0     0 ?        Z    06:06   0:00 [simple_switch_g] <defunct>
+root       18592  0.0  0.0      0     0 ?        Z    06:07   0:00 [simple_switch_g] <defunct>
+root       18690  0.0  0.0      0     0 ?        Z    06:08   0:00 [simple_switch_g] <defunct>
+root       18786  0.0  0.0      0     0 ?        Z    06:09   0:00 [simple_switch_g] <defunct>
+root       18884  0.0  0.0      0     0 ?        Z    06:10   0:00 [simple_switch_g] <defunct>
+root       18980  0.0  0.0      0     0 ?        Z    06:11   0:00 [simple_switch_g] <defunct>
+root       19116  0.0  0.0      0     0 ?        Z    06:11   0:00 [simple_switch_g] <defunct>
+root       19216  0.0  0.0      0     0 ?        Z    06:12   0:00 [simple_switch_g] <defunct>
+root       19314  0.0  0.0      0     0 ?        Z    06:14   0:00 [simple_switch_g] <defunct>
+root       19448  0.0  0.0      0     0 ?        Z    06:15   0:00 [simple_switch_g] <defunct>
+root       19546  0.0  0.0      0     0 ?        Z    06:15   0:00 [simple_switch_g] <defunct>
+root       19644  0.0  0.0      0     0 ?        Z    06:16   0:00 [simple_switch_g] <defunct>
+root       19742  0.0  0.0      0     0 ?        Z    06:17   0:00 [simple_switch_g] <defunct>
+root       19878  0.0  0.0      0     0 ?        Z    06:18   0:00 [simple_switch_g] <defunct>
+root       19976  0.0  0.0      0     0 ?        Z    06:18   0:00 [simple_switch_g] <defunct>
+root       20110  0.0  0.0      0     0 ?        Z    06:19   0:00 [simple_switch_g] <defunct>
+root       20277  0.0  0.0      0     0 ?        Z    06:20   0:00 [simple_switch_g] <defunct>
+root       20375  0.0  0.0      0     0 ?        Z    06:20   0:00 [simple_switch_g] <defunct>
+root       20475  0.0  0.0      0     0 ?        Z    06:20   0:00 [simple_switch_g] <defunct>
+root       20571  0.0  0.0      0     0 ?        Z    06:21   0:00 [simple_switch_g] <defunct>
+root       20736  0.0  0.0      0     0 ?        Z    06:21   0:00 [simple_switch_g] <defunct>
+root       20834  0.0  0.0      0     0 ?        Z    06:22   0:00 [simple_switch_g] <defunct>
+root       20972  0.0  0.0      0     0 ?        Z    06:23   0:00 [simple_switch_g] <defunct>
+root       21070  0.0  0.0      0     0 ?        Z    06:24   0:00 [simple_switch_g] <defunct>
+root       21168  0.0  0.0      0     0 ?        Z    06:25   0:00 [simple_switch_g] <defunct>
+root       21304  0.0  0.0      0     0 ?        Z    06:25   0:00 [simple_switch_g] <defunct>
+root       21400  0.0  0.0      0     0 ?        Z    06:26   0:00 [simple_switch_g] <defunct>
+root       21498  0.0  0.0      0     0 ?        Z    06:27   0:00 [simple_switch_g] <defunct>
+root       21596  0.0  0.0      0     0 ?        Z    06:28   0:00 [simple_switch_g] <defunct>
+root       21763  0.0  0.0      0     0 ?        Z    06:28   0:00 [simple_switch_g] <defunct>
+root       21918  0.0  0.0      0     0 ?        Z    06:29   0:00 [simple_switch_g] <defunct>
+root       22016  0.0  0.0      0     0 ?        Z    06:30   0:00 [simple_switch_g] <defunct>
+root       22114  0.0  0.0      0     0 ?        Z    06:31   0:00 [simple_switch_g] <defunct>
+root       22250  0.0  0.0      0     0 ?        Z    06:32   0:00 [simple_switch_g] <defunct>
+root       22346  0.0  0.0      0     0 ?        Z    06:32   0:00 [simple_switch_g] <defunct>
+root       22444  0.0  0.0      0     0 ?        Z    06:33   0:00 [simple_switch_g] <defunct>
+root       22544  0.0  0.0      0     0 ?        Z    06:33   0:00 [simple_switch_g] <defunct>
+root       22680  0.0  0.0      0     0 ?        Z    06:35   0:00 [simple_switch_g] <defunct>
+root       22816  0.0  0.0      0     0 ?        Z    06:36   0:00 [simple_switch_g] <defunct>
+root       22914  0.0  0.0      0     0 ?        Z    06:36   0:00 [simple_switch_g] <defunct>
+root       23050  0.0  0.0      0     0 ?        Z    06:37   0:00 [simple_switch_g] <defunct>
+root       23150  0.0  0.0      0     0 ?        Z    06:37   0:00 [simple_switch_g] <defunct>
+root       23317  0.0  0.0      0     0 ?        Z    06:39   0:00 [simple_switch_g] <defunct>
+root       23415  0.0  0.0      0     0 ?        Z    06:39   0:00 [simple_switch_g] <defunct>
+root       23551  0.0  0.0      0     0 ?        Z    06:40   0:00 [simple_switch_g] <defunct>
+root       23649  0.0  0.0      0     0 ?        Z    06:41   0:00 [simple_switch_g] <defunct>
+root       23749  0.0  0.0      0     0 ?        Z    06:41   0:00 [simple_switch_g] <defunct>
+root       23847  0.0  0.0      0     0 ?        Z    06:42   0:00 [simple_switch_g] <defunct>
+root       23945  0.0  0.0      0     0 ?        Z    06:43   0:00 [simple_switch_g] <defunct>
+root       24041  0.0  0.0      0     0 ?        Z    06:45   0:00 [simple_switch_g] <defunct>
+root       24139  0.0  0.0      0     0 ?        Z    06:47   0:00 [simple_switch_g] <defunct>
+root       24235  0.0  0.0      0     0 ?        Z    06:48   0:00 [simple_switch_g] <defunct>
+root       24369  0.0  0.0      0     0 ?        Z    06:49   0:00 [simple_switch_g] <defunct>
+root       24467  0.0  0.0      0     0 ?        Z    06:51   0:00 [simple_switch_g] <defunct>
+root       24565  0.0  0.0      0     0 ?        Z    06:53   0:00 [simple_switch_g] <defunct>
+root       24661  0.0  0.0      0     0 ?        Z    06:55   0:00 [simple_switch_g] <defunct>
+root       24828  0.0  0.0      0     0 ?        Z    06:58   0:00 [simple_switch_g] <defunct>
+root       24965  0.0  0.0      0     0 ?        Z    07:02   0:00 [simple_switch_g] <defunct>
+root       25061  0.0  0.0      0     0 ?        Z    07:09   0:00 [simple_switch_g] <defunct>
+root       25197  0.0  0.0      0     0 ?        Z    07:18   0:00 [simple_switch_g] <defunct>
+root       25295  0.0  0.0      0     0 ?        Z    07:20   0:00 [simple_switch_g] <defunct>
+root       25393  0.0  0.0      0     0 ?        Z    07:24   0:00 [simple_switch_g] <defunct>
+root       25491  0.0  0.0      0     0 ?        Z    07:28   0:00 [simple_switch_g] <defunct>
+root       25627  1.5  0.0      0     0 ?        Zl   07:32   0:00 [simple_switch_g] <defunct>
+root       25718  0.0  0.0   3540  2120 ?        S    07:32   0:00 grep simple_switch
