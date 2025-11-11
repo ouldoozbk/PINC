@@ -322,11 +322,28 @@ The `Evaluator` class allows you to communicate with the server you have started
 
 Once the Evaluator instance is created, we can `evaluate_generations(...)` by passing the LLM produced generation (`results` variable in the example below), and the intents used (`test_intents` or ["your prompt 1", "your prompt 2"] in example above.)
 
-```
+```python
 validation_endpoint = EndPoint("34.61.128.41", 8000, "/validate")
 
 p4_evaluator = Evaluator(validation_endpoint)
 prompt_validation_counts, all_results = p4_evaluator.evaluate_generations(results, test_intents)
+```
+
+**8. Pass@k and compile rate:**
+You can use the `Evaluator` class instance to compute pass@k and compile rate as shown in the code snippet below.
+
+`pass_at_k` function accepts the following arguments:
+
+- **prompt_validation_counts:** first thing returned by `evaluate_generations`
+- **ks**: for what values of k do you want to compute pass@k (make sure doesn't exceed N)
+- **N**: number of generations per prompt. Make sure to set this argument correctly. It's how many code generations you're generating per prompt,
+  which is also chosen in `sampling_params`.
+
+```python
+pass_at_k_scores = p4_evaluator.pass_at_k(prompt_validation_counts, ks=[1, 10], n = N)
+
+for k in pass_at_k_scores:
+  print(f'pass@{k} is: {pass_at_k_scores[k]}')
 ```
 
 ## 4. TODOs:
