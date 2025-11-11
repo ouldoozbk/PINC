@@ -113,7 +113,11 @@ To allow your machine to accept requests and redirect the to the correct port, i
 cloudflared tunnel --url http://localhost:8000
 ```
 
-Running cloudflared will give you a link that will allow you to access the server.
+Running cloudflared will give you a link that will allow you to access the server. 
+A successful run will and a sample url example is shown below:
+
+<img width="1916" height="578" alt="image" src="https://github.com/user-attachments/assets/fcb89be9-1fbf-48f3-9b4f-603fd73076ec" />
+
 
 **Option 2: Running the Server on Cloud Provider**
 
@@ -123,6 +127,15 @@ uvicorn main:app --host 0.0.0.0
 ```
 
 After this, make sure you configure your cloud instance to allow incoming packets by allowing ingree and outgress tcp/udp connections. 
+
+----
+**For both Option 1 and Option 2:**
+
+Successful server launch will look like this:
+
+<img width="1028" height="615" alt="image" src="https://github.com/user-attachments/assets/bc4bae29-d33f-4640-b259-44e3bb46c544" />
+
+
 
 **Checking if the Server Works:**:
 You can use ant software or the terminal to make an HTTP request of the following form:
