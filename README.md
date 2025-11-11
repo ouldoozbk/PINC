@@ -401,4 +401,3 @@ for k in pass_at_k_scores:
 
 ## 4. TODOs:
 1. Remove my personal tokens, make things public once that's possible.
-2. Add a part that rells the user to git clone this first
