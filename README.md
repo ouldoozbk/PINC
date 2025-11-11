@@ -97,7 +97,9 @@ Building the docker image is expected to take several minutes.
 **Running the Server:**
 
 
-When running the server, you can either run the server locally on your machine, and use cloudflared to redirect requests to your local machine, or run the server on a Cloud provider. Both approaches are described below. Both methods simply run a FastAPI server using uvicorn. You can configure number of persistent containers, docker image name, starting port to launch docker containers, in **main.py**:
+When running the server, you can either run the server locally on your machine, and use cloudflared to redirect requests to your local machine, or run the server on a Cloud provider. Both approaches are described below. Both methods simply run a FastAPI server using uvicorn. 
+
+_**IMPORTANT Note:** You can configure number of persistent containers, docker image name, starting port to launch docker containers, in **[main.py](https://github.com/ouldoozbk/PINC/blob/main/validation_server/main.py)**:_
 ``` python
 CONTAINER_IMAGE = "illianasiri/p4_test_suite" # image name used to launch docker containers
 PORT_START = 8022 # start port from which docker containers are launched
@@ -150,24 +152,44 @@ Successful server launch will look like this:
 
 
 
-**Checking if the Server Works:**:
+**Checking if the Server Works:**
 You can use ant software or the terminal to make an HTTP request of the following form:
 
 In the terminal: (OS independent)
 
-Local Host:
+**Local Host:**
 ``` bash
 curl -X POST http://[CLOUD FLARE URL]/validate \
      -H "Content-Type: application/json" \
      -d '{"code": ""}'
 ```
 
-Cloud:
+For example:
+
 ``` bash
-curl -X POST http://[SERVER IP]:8000/validate \
+curl -X POST http://relief-disable-sterling-scheduling.trycloudflare.com/validate -H "Content-Type: application/json" -d '{"code": "hello"}'
+```
+
+would return:
+
+```json
+{
+  "compiled": false,
+  "test_cases": false,
+  "stderr": "/work_space/b4a3f65d-72b1-4538-a49b-ea7b3ee0e865.p4(1):syntax error, unexpected END\nhello\n     ^\n[--Werror=overlimit] error: 1 errors encountered, aborting compilation\n",
+  "stdout": "Found p4c base_test.py package: /root/p4c/tools/ptf/base_test.py\nRunning p4testgen on /work_space/b4a3f65d-72b1-4538-a49b-ea7b3ee0e865.p4 ...\nError: Test generation failed. Directory out- p4testgen not found.\n"
+}
+```
+
+
+**Cloud:**
+``` bash
+curl -X POST http://[SERVER IP HERE / DOMAIN]:8000/validate \
      -H "Content-Type: application/json" \
      -d '{"code": ""}'
 ```
+
+Output:
 
 
 ## 3. Using the Jupyter Notebook to Run the Model
