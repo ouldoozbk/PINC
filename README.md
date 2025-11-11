@@ -1,19 +1,31 @@
+## 0. Clone Repository
+
+Please clone the repository by running:
+```
+git clone https://github.com/ouldoozbk/PINC.git
+```
+
 ## 1.Project Structure
 This part of the repository provides the code to pull the model and run inference on it, as well as containerized code to validate the outputs of the model. The structure of the files is as follows:
 
-**1. Juputer Notebook [LINK](https://colab.research.google.com/drive/1sE8-aAZqzfzbg7eIlVfoLVwj4UKfCjVR#scrollTo=MjwUueocevul):** This notebook provides you with 
+**1. Juputer Notebook:** 
+
+You can download the notebook via [Colab](https://colab.research.google.com/drive/1sE8-aAZqzfzbg7eIlVfoLVwj4UKfCjVR#scrollTo=MjwUueocevul) or simply by going to the [inference_notebook.ipynb](/inference_notebook.ipynb) file in this repository (Ignore the invalid notebook error, as GitHub doesn't yet support viewing .ipynb files). 
+
+
+This notebook does the following: 
 1. Code to load/unload our fine-tuned model onto your machine/colab from HuggingFace running on vLLM (ModelLoader class)
 2. Code to structure the prompt to the model properly (PromptBuilder class)
 3. Code to run inference on the model (LLMGenerator class)
 4. Code to interact with the server to compute pass@k and compile rate (Evaluator class)
 5. Sample inference pipeline that loads the model and its tokenizer, passes a desired prompt format to PromptBuilder (allows you to pass few-shot examples, do dynamic few-shot example selection using our classifier, ...), initializes recommended sampling parameters, samples generations from the fine-tuned model, validates it, and evaluates pass@k and compile rate. 
 
-**2. Server (validation_module folder):** The goal of this server is to validate LLM outputs. This server listens to incoming POST requests that contain the code. It accepts these requests, dispatches it to the first available "warm" docker container to compile and run static validation (p4testgen) on, and then return the details to the user. 
+**2. Server:** Located in [validation_server](https://github.com/ouldoozbk/PINC/tree/main/validation_server) folder, the goal of this server is to validate LLM outputs. This server listens to incoming POST requests that contain the code. It accepts these requests, dispatches it to the first available "warm" docker container to compile and run static validation (p4testgen) on, and then return the details to the user. 
 
 ----
 
 ## 2. Setting up Validation Server:
-To run the server, you will need to have docker installed and have all necessary libraries (more details in 2.1.0). Once you have all the required libraries and Docker, setting up the server will be comprised of two main stages: 1. setting up the docker container that validates a code sample 2. running the server that launches several persistent instances of these docker containers and handles dispatching incoming requests to these containers as well as the responses to the user.  
+To run the server, you will need to have docker installed and have all necessary libraries (more details soon). Once you have all the required libraries and Docker, setting up the server will be comprised of two main stages: 1. setting up the docker container that validates a code sample 2. running the server that launches several persistent instances of these docker containers and handles dispatching incoming requests to these containers as well as the responses to the user.  
 
 ### Required Dependencies and Libraries for the Server:
 - Docker
@@ -57,7 +69,7 @@ sudo apt-get install -y python3 python3-pip python3-venv
 
 **Installing Python libraries:**
 
-Once you have Python and pip, to install all necessary Python Libraries to run the server, navigate to the folder containing requirements.txt and run:
+Once you have Python and pip, to install all necessary Python Libraries to run the server, navigate to the [validation_server](/validation_server) folder containing [requirements.txt](https://github.com/ouldoozbk/PINC/blob/main/validation_server/requirements.txt) and run:
 ```
 pip install -r requirements.txt 
 ```
@@ -87,7 +99,7 @@ Building the docker image is expected to take several minutes.
 
 When running the server, you can either run the server locally on your machine, and use cloudflared to redirect requests to your local machine, or run the server on a Cloud provider. Both approaches are described below. Both methods simply run a FastAPI server using uvicorn. You can configure number of persistent containers, docker image name, starting port to launch docker containers, in **main.py**:
 ``` python
-CONTAINER_IMAGE = "p4_test_suite" # image name used to launch docker containers
+CONTAINER_IMAGE = "illianasiri/p4_test_suite" # image name used to launch docker containers
 PORT_START = 8022 # start port from which docker containers are launched
 NUM_CONTAINERS = 24 # how many persistent containers are launched
 PORT_RANGE = range(PORT_START, PORT_START + NUM_CONTAINERS)  # 24 docker containers launched on ports 8022 to 8045
