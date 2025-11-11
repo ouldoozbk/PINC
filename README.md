@@ -1,7 +1,7 @@
 ## 1.Project Structure
 This part of the repository provides the code to pull the model and run inference on it, as well as containerized code to validate the outputs of the model. The structure of the files is as follows:
 
-**1. Juputer Notebook (pass@k .ipynb):** This notebook provides you with 
+**1. Juputer Notebook [LINK](https://colab.research.google.com/drive/1sE8-aAZqzfzbg7eIlVfoLVwj4UKfCjVR#scrollTo=MjwUueocevul):** This notebook provides you with 
 1. Code to load/unload our fine-tuned model onto your machine/colab from HuggingFace running on vLLM (ModelLoader class)
 2. Code to structure the prompt to the model properly (PromptBuilder class)
 3. Code to run inference on the model (LLMGenerator class)
