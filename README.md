@@ -118,6 +118,7 @@ A successful run will and a sample url example is shown below:
 
 <img width="1916" height="578" alt="image" src="https://github.com/user-attachments/assets/fcb89be9-1fbf-48f3-9b4f-603fd73076ec" />
 
+----
 
 **Option 2: Running the Server on Cloud Provider**
 
@@ -337,6 +338,8 @@ Once the Evaluator instance is created, we can `evaluate_generations(...)` by pa
 
 ```python
 validation_endpoint = EndPoint("34.61.128.41", 8000, "/validate")
+# OR THIS for cloudflared server:
+# validation_endpoint = EndPoint("starring-contacts-rest-max.trycloudflare.com", "/validate")
 
 p4_evaluator = Evaluator(validation_endpoint)
 prompt_validation_counts, all_results = p4_evaluator.evaluate_generations(results, test_intents)
