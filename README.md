@@ -373,11 +373,14 @@ Once the Evaluator instance is created, we can `evaluate_generations(...)` by pa
 ```python
 validation_endpoint = EndPoint("34.61.128.41", 8000, "/validate")
 # OR THIS for cloudflared server:
-# validation_endpoint = EndPoint("starring-contacts-rest-max.trycloudflare.com", "/validate")
+validation_endpoint = EndPoint("starring-contacts-rest-max.trycloudflare.com", "/validate") # PLEASE CHANGE THE ENDPOINT DEPENDING ON THE ADDRESS CLOUDFLARE GAVE YOU!!!!!
 
 p4_evaluator = Evaluator(validation_endpoint)
 prompt_validation_counts, all_results = p4_evaluator.evaluate_generations(results, test_intents)
 ```
+
+_**VERY VERY IMPORTANT NOTE:** for the validation_endpoint argument, please make sure you're using your own IP or Cloudflare Address, as the address given in this readme or the notebook
+**WON'T** work. Also, note that with Cloudflare, the **address is different every time you rerun the command**._
 
 **8. Pass@k and compile rate:**
 You can use the `Evaluator` class instance to compute pass@k and compile rate as shown in the code snippet below.
