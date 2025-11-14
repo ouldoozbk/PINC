@@ -126,6 +126,17 @@ to close the terminal running the server but it would still keep it running in t
 
 **Redirecting connections via cloudflared:**
 
+
+**For MacOS users:**
+
+- This far into the guide, **Linux** and **Windows** users will have cloudflared already installed thanks to running `pip install -r requirements.txt` which installs it automatically. For **MacOS** users this does not suffice and running an extra command is required to have cloudflared installed. Install cloudflared by running:
+
+- ```bash
+  brew install cloudflared
+  ```
+<br>
+<br>
+
 To allow your machine to accept requests and redirect the to the correct port, in additional terminal, run:
 ``` bash
 cloudflared tunnel --url http://localhost:8000
