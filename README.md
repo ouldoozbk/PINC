@@ -70,7 +70,11 @@ sudo apt-get install -y python3 python3-pip python3-venv
 **Installing Python libraries:**
 
 Once you have Python and pip, to install all necessary Python Libraries to run the server, navigate to the [validation_server](/validation_server) folder containing [requirements.txt](https://github.com/ouldoozbk/PINC/blob/main/validation_server/requirements.txt) and run:
-```
+``` bash
+# set up a virtual environment, could use conda instead
+python3 -m venv .venv
+source .venv/bin/activate
+
 pip install -r requirements.txt 
 ```
 ----
