@@ -75,7 +75,12 @@ Once you have Python and pip, to install all necessary Python Libraries to run t
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt 
+pip install -r requirements.txt
+
+# set up environment with conda 
+conda create -n p4 python=3.10
+conda activate p4
+cd validation_server
 ```
 ----
 ### Running the Server:
