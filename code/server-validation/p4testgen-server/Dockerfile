@@ -1,4 +1,5 @@
-FROM p4lang/p4c
+# Use amd64 so this works on Apple Silicon (p4lang/p4c has no arm64 image)
+FROM --platform=linux/amd64 p4lang/p4c
 
 RUN apt update && apt install -y nano
 

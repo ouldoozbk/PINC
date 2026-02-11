@@ -1,0 +1,34 @@
+{
+  "code_id": "code_085d17ade985",
+  "timestamp": "2026-02-11T23:52:16Z",
+  "detected_behaviors": [
+    {
+      "behavior_id": "mac_forwarding_impl",
+      "evidence": {
+        "table_name": "fwd_table",
+        "table_type": "exact",
+        "key_fields": [
+          "hdr.ethernet.dstAddr"
+        ],
+        "actions": [
+          "set_egress_port",
+          "NoAction"
+        ],
+        "default_action": "NoAction"
+      }
+    }
+  ],
+  "headers_defined": [
+    "ethernet_t",
+    "vlan_t"
+  ],
+  "control_blocks": {
+    "ingress": [
+      "MyIngress"
+    ],
+    "egress": [
+      "MyEgress"
+    ]
+  },
+  "suspicious_patterns": []
+}

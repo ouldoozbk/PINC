@@ -21,6 +21,7 @@ The system is designed to simplify P4 programming by allowing network engineers 
 - Git
 - **Docker** (for P4 code validation)
 - pyang (for YANG model parsing; install with `pip install pyang`)
+- **API token:** Either an **OpenAI** API key or a **Replicate** API token (get one at [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)).
 - *(Optional but recommended)* A YANG model file (e.g., `network-config.yang`) and a YANG data file (e.g., `config.json`) representing your current network configuration.
 
 ## Setup Instructions
@@ -50,13 +51,21 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Configure OpenAI API Key
+### 4. Configure API token (Replicate or OpenAI)
 
-Set your OpenAI API key as an environment variable:
+Use **one** of the following:
 
+**Option A – Replicate (e.g. Meta Llama 3):**
+```bash
+export REPLICATE_API_TOKEN='r8_...'
+```
+
+**Option B – OpenAI:**
 ```bash
 export OPENAI_API_KEY='your-api-key'
 ```
+
+If both are set, the script uses Replicate first.
 
 ## Usage
 
