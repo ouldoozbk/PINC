@@ -1,23 +1,13 @@
-Generate P4-16 code that implements the following network intent: Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding
+Generate P4-16 code that implements the following network intent: Ethernet switch with MAC learning and forwarding
 
 YANG Data (Current Configuration):
 ---------------------------------
 {
-  "intent_id": "intent_b2eca0a15eca",
-  "timestamp": "2026-02-12T00:37:07Z",
+  "intent_id": "intent_abc123",
+  "timestamp": "2026-02-11T12:00:00Z",
   "intent_type": "inferred",
-  "raw_intent": "Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding",
+  "raw_intent": "Create a P4 program for basic Ethernet switch with MAC learning",
   "required_behaviors": [
-    {
-      "behavior_id": "forwarding",
-      "description": "Inferred from intent: forwarding",
-      "components": {
-        "table_required": true,
-        "table_type": "exact",
-        "key_fields": [],
-        "action_types": []
-      }
-    },
     {
       "behavior_id": "mac_learning",
       "description": "Inferred from intent: mac learning",
@@ -29,8 +19,8 @@ YANG Data (Current Configuration):
       }
     },
     {
-      "behavior_id": "mac_forwarding",
-      "description": "Inferred from intent: mac forwarding",
+      "behavior_id": "forwarding",
+      "description": "Inferred from intent: forwarding",
       "components": {
         "table_required": true,
         "table_type": "exact",
@@ -57,7 +47,7 @@ YANG Data (Current Configuration):
 
 
 Please generate P4 code that:
-1. Implements the user's intent: "Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding"
+1. Implements the user's intent: "Ethernet switch with MAC learning and forwarding"
 2. Works with the current network configuration
 3. Respects existing interface and firewall rules
 4. Avoids conflicts with current setup

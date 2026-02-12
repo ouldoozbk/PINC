@@ -1,17 +1,16 @@
 {
-  "code_id": "code_981168020d67",
-  "timestamp": "2026-02-12T00:38:37Z",
+  "code_id": "code_87b77e12b71d",
+  "timestamp": "2026-02-12T01:11:56Z",
   "detected_behaviors": [
     {
-      "behavior_id": "mac_learning_impl",
+      "behavior_id": "mac_forwarding_impl",
       "evidence": {
-        "table_name": "mac_table",
+        "table_name": "forwarding_table",
         "table_type": "exact",
         "key_fields": [
-          "hdr.ethernet.srcAddr"
+          "hdr.ethernet.dstAddr"
         ],
         "actions": [
-          "learn_mac",
           "forward",
           "NoAction"
         ],

@@ -5,7 +5,8 @@
       "id" : 0,
       "fields" : [
         ["metadata.ingress_port", 9, false],
-        ["_padding_0", 7, false]
+        ["metadata.egress_port", 9, false],
+        ["_padding_0", 6, false]
       ]
     },
     {
@@ -101,6 +102,31 @@
           ],
           "transitions" : [
             {
+              "type" : "hexstr",
+              "value" : "0x0000",
+              "mask" : null,
+              "next_state" : "parse_ipv4"
+            },
+            {
+              "type" : "default",
+              "value" : null,
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "etherType"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_ipv4",
+          "id" : 1,
+          "parser_ops" : [],
+          "transitions" : [
+            {
               "type" : "default",
               "value" : null,
               "mask" : null,
@@ -119,7 +145,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 51,
+        "line" : 55,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
@@ -140,39 +166,8 @@
       "primitives" : []
     },
     {
-      "name" : "MyIngress.learn_mac",
-      "id" : 1,
-      "runtime_data" : [
-        {
-          "name" : "mac",
-          "bitwidth" : 48
-        }
-      ],
-      "primitives" : [
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "metadata.ingress_port"]
-            },
-            {
-              "type" : "field",
-              "value" : ["standard_metadata", "ingress_port"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "test.p4",
-            "line" : 29,
-            "column" : 8,
-            "source_fragment" : "meta.ingress_port = standard_metadata.ingress_port"
-          }
-        }
-      ]
-    },
-    {
       "name" : "MyIngress.forward",
-      "id" : 2,
+      "id" : 1,
       "runtime_data" : [
         {
           "name" : "port",
@@ -185,7 +180,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["standard_metadata", "egress_spec"]
+              "value" : ["scalars", "metadata.egress_port"]
             },
             {
               "type" : "runtime_data",
@@ -194,9 +189,9 @@
           ],
           "source_info" : {
             "filename" : "test.p4",
-            "line" : 32,
+            "line" : 37,
             "column" : 8,
-            "source_fragment" : "standard_metadata.egress_spec = port"
+            "source_fragment" : "meta.egress_port = port"
           }
         }
       ]
@@ -208,26 +203,26 @@
       "id" : 0,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 26,
+        "line" : 35,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
-      "init_table" : "MyIngress.mac_table",
+      "init_table" : "MyIngress.forwarding_table",
       "tables" : [
         {
-          "name" : "MyIngress.mac_table",
+          "name" : "MyIngress.forwarding_table",
           "id" : 0,
           "source_info" : {
             "filename" : "test.p4",
-            "line" : 34,
+            "line" : 39,
             "column" : 10,
-            "source_fragment" : "mac_table"
+            "source_fragment" : "forwarding_table"
           },
           "key" : [
             {
               "match_type" : "exact",
-              "name" : "hdr.ethernet.srcAddr",
-              "target" : ["ethernet", "srcAddr"],
+              "name" : "hdr.ethernet.dstAddr",
+              "target" : ["ethernet", "dstAddr"],
               "mask" : null
             }
           ],
@@ -237,11 +232,10 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [1, 2, 0],
-          "actions" : ["MyIngress.learn_mac", "MyIngress.forward", "NoAction"],
+          "action_ids" : [1, 0],
+          "actions" : ["MyIngress.forward", "NoAction"],
           "base_default_next" : null,
           "next_tables" : {
-            "MyIngress.learn_mac" : null,
             "MyIngress.forward" : null,
             "NoAction" : null
           },
@@ -261,7 +255,7 @@
       "id" : 1,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 44,
+        "line" : 49,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
