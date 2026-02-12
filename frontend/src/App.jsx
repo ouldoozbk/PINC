@@ -39,6 +39,7 @@ const STAGES = [
   { key: 'generating', label: 'LLM Generate' },
   { key: 'vrf_a', label: 'VRF A' },
   { key: 'vrf_a5', label: 'VRF A.5' },
+  { key: 'vrf_b', label: 'VRF B' },
   { key: 'done', label: 'Done' },
 ]
 
@@ -109,6 +110,12 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
     }, 1500)
   }
 
+  const stop = async () => {
+    try {
+      await fetch(`${API}/api/stop-pipeline`, { method: 'POST' })
+    } catch { /* ignore */ }
+  }
+
   useEffect(() => () => clearInterval(polling.current), [])
 
   const running = state?.running
@@ -164,9 +171,16 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
               <textarea value={yangData} onChange={e => setField('yangData', e.target.value)} placeholder='Paste JSON configuration here...' rows={3} />
             </div>
 
-            <button className="btn btn-primary" onClick={start} disabled={running || !intent || !apiKey}>
-              {running ? <><span className="spinner" /> Running...</> : 'Run Pipeline'}
-            </button>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button className="btn btn-primary" onClick={start} disabled={running || !intent || !apiKey}>
+                {running ? <><span className="spinner" /> Running...</> : 'Run Pipeline'}
+              </button>
+              {running && (
+                <button className="btn" onClick={stop} style={{ background: '#dc2626', color: '#fff', border: 'none' }}>
+                  Stop
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -209,6 +223,29 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
                   <ScoreBar label="Control Blocks" value={state.vrf_a5_result.detailed_scores.control_blocks || 0} />
                   <ScoreBar label="Prohibited Check" value={state.vrf_a5_result.detailed_scores.prohibited_check || 0} />
                 </>
+              )}
+            </div>
+          )}
+
+          {/* VRF B */}
+          {state?.vrf_b_result && (
+            <div className="card">
+              <div className="card-title">VRF B — Functional Testing</div>
+              {state.vrf_b_result.skipped ? (
+                <span className="badge badge-info">Skipped</span>
+              ) : state.vrf_b_result.success ? (
+                <span className="badge badge-success">All Tests Passed</span>
+              ) : (
+                <span className="badge badge-error">Tests Failed</span>
+              )}
+              {state.vrf_b_result.error && (
+                <p style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{state.vrf_b_result.error}</p>
+              )}
+              {state.vrf_b_result.stdout && (
+                <pre className="code-viewer" style={{ marginTop: 10, maxHeight: 200 }}>{state.vrf_b_result.stdout}</pre>
+              )}
+              {state.vrf_b_result.stderr && (
+                <pre className="code-viewer" style={{ marginTop: 6, maxHeight: 120, color: 'var(--yellow)' }}>{state.vrf_b_result.stderr}</pre>
               )}
             </div>
           )}
@@ -490,50 +527,162 @@ function IntentTab({ intentState, setIntentState }) {
 
 // ─── Tab: VRF B (Functional Testing) ──────────────────────────────────────
 
-function FunctionalTab() {
+function FunctionalTab({ vrfbState, setVrfbState }) {
+  const { p4Code, poolStatus, testResult } = vrfbState
+  const [loading, setLoading] = useState(false)
+  const [poolLoading, setPoolLoading] = useState(false)
+
+  const set = (key, val) => setVrfbState(prev => ({ ...prev, [key]: val }))
+
+  const refreshPool = async () => {
+    try {
+      const r = await fetch(`${API}/api/vrf-b/status`)
+      set('poolStatus', await r.json())
+    } catch { /* ignore */ }
+  }
+
+  useEffect(() => { refreshPool() }, [])
+
+  const startPool = async () => {
+    setPoolLoading(true)
+    try {
+      const r = await fetch(`${API}/api/vrf-b/start-pool`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const data = await r.json()
+      if (!r.ok) { alert(data.error || 'Failed to start pool'); return }
+      set('poolStatus', data)
+    } finally { setPoolLoading(false) }
+  }
+
+  const stopPool = async () => {
+    setPoolLoading(true)
+    try {
+      const r = await fetch(`${API}/api/vrf-b/stop-pool`, { method: 'POST' })
+      set('poolStatus', await r.json())
+    } finally { setPoolLoading(false) }
+  }
+
+  const runTest = async () => {
+    setLoading(true)
+    set('testResult', null)
+    try {
+      const r = await fetch(`${API}/api/vrf-b/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p4_code: p4Code }),
+      })
+      set('testResult', await r.json())
+    } catch (e) {
+      set('testResult', { success: false, error: e.message })
+    } finally {
+      setLoading(false)
+      refreshPool()
+    }
+  }
+
+  const poolRunning = poolStatus?.running
+  const poolAvail = poolStatus?.available ?? 0
+  const poolTotal = poolStatus?.total ?? 0
+
   return (
-    <div className="card">
-      <div className="card-title">VRF B — Functional Testing</div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.8 }}>
-        VRF B uses <strong>p4testgen</strong> and <strong>PTF (Packet Test Framework)</strong> to
-        functionally test the generated P4 code against expected packet I/O behavior.
-      </p>
-      <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
-        <p style={{ color: 'var(--yellow)', fontSize: '0.82rem', fontWeight: 600, marginBottom: 8 }}>
-          Not yet wired into the pipeline
+    <div>
+      {/* Pool Management */}
+      <div className="card">
+        <div className="card-title">Container Pool</div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+          VRF B runs <strong>p4testgen + PTF</strong> inside privileged Docker containers (image: <code style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>p4_test_suite</code>).
+          Start the pool before running tests. The pool is also used by the full pipeline.
         </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-          The VRF B testing infrastructure is available via{' '}
-          <code style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
-            code/server-validation/p4testgen-server/vrf_b_run_tests.sh
-          </code>{' '}
-          and requires the p4testgen Docker container. Integration with the frontend is planned.
-        </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <span className={`badge ${poolRunning ? 'badge-success' : 'badge-error'}`}>
+            {poolRunning ? 'Running' : 'Stopped'}
+          </span>
+          {poolRunning && (
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              {poolAvail} / {poolTotal} workers available
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          {!poolRunning ? (
+            <button className="btn btn-primary btn-sm" onClick={startPool} disabled={poolLoading}>
+              {poolLoading ? <><span className="spinner" /> Starting...</> : 'Start Pool'}
+            </button>
+          ) : (
+            <button className="btn btn-secondary btn-sm" onClick={stopPool} disabled={poolLoading}>
+              {poolLoading ? <><span className="spinner" /> Stopping...</> : 'Stop Pool'}
+            </button>
+          )}
+          <button className="btn btn-secondary btn-sm" onClick={refreshPool}>Refresh</button>
+        </div>
+
+        {!poolRunning && (
+          <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.7 }}>
+              <strong>First-time setup:</strong> Build the Docker image from <code style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 4px', borderRadius: 4 }}>code/server-validation/p4testgen-server/</code>:
+            </p>
+            <pre className="json-viewer" style={{ marginTop: 6, maxHeight: 60, fontSize: '0.76rem' }}>docker buildx build --tag p4_test_suite . --load</pre>
+          </div>
+        )}
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <div className="card-title">Expected VRF B JSON Format</div>
-        <pre className="json-viewer">{pretty({
-          test_id: "test_001",
-          p4_program: "test.p4",
-          test_cases: [
-            {
-              name: "basic_forward",
-              input_packet: {
-                port: 1,
-                headers: { ethernet: { dstAddr: "00:00:00:00:00:02", srcAddr: "00:00:00:00:00:01", etherType: "0x0800" } }
-              },
-              expected_output: {
-                port: 2,
-                headers: { ethernet: { dstAddr: "00:00:00:00:00:02", srcAddr: "00:00:00:00:00:01", etherType: "0x0800" } }
-              },
-              table_entries: [
-                { table: "fwd_table", match: { "hdr.ethernet.dstAddr": "00:00:00:00:00:02" }, action: "forward", params: { port: 2 } }
-              ]
-            }
-          ]
-        })}</pre>
+      {/* Run Test */}
+      <div className="card">
+        <div className="card-title">Run Functional Test</div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+          Submit P4-16 code. The worker runs p4testgen (generates up to 10 PTF test cases), compiles with p4c, starts simple_switch_grpc, and executes PTF tests.
+        </p>
+        <div className="form-group">
+          <label>P4 Source Code</label>
+          <textarea className="tall" value={p4Code} onChange={e => set('p4Code', e.target.value)} placeholder="#include <core.p4>..." />
+        </div>
+        <button className="btn btn-primary" onClick={runTest} disabled={loading || !p4Code || !poolRunning}>
+          {loading ? <><span className="spinner" /> Running Tests...</> : 'Run VRF B Tests'}
+        </button>
+        {!poolRunning && p4Code && (
+          <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--yellow)' }}>Start the container pool first</span>
+        )}
       </div>
+
+      {/* Results */}
+      {testResult && (
+        <div className="card">
+          <div className="card-title">Test Results</div>
+          <div style={{ marginBottom: 12 }}>
+            {testResult.success ? (
+              <span className="badge badge-success">All Tests Passed</span>
+            ) : (
+              <span className="badge badge-error">{testResult.error ? 'Error' : 'Tests Failed'}</span>
+            )}
+            {testResult.returncode != null && (
+              <span style={{ marginLeft: 10, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Exit code: {testResult.returncode}
+              </span>
+            )}
+          </div>
+
+          {testResult.error && (
+            <div style={{ padding: 10, background: 'var(--red-bg)', borderRadius: 8, marginBottom: 12, fontSize: '0.82rem', color: 'var(--red)' }}>
+              {testResult.error}
+            </div>
+          )}
+
+          {testResult.stdout && (
+            <div style={{ marginBottom: 12 }}>
+              <div className="card-title">stdout</div>
+              <pre className="code-viewer" style={{ maxHeight: 300 }}>{testResult.stdout}</pre>
+            </div>
+          )}
+
+          {testResult.stderr && (
+            <div>
+              <div className="card-title">stderr</div>
+              <pre className="code-viewer" style={{ maxHeight: 200, color: 'var(--yellow)' }}>{testResult.stderr}</pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -664,8 +813,6 @@ export default function App() {
     intent: '',
     yangModel: '',
     yangData: '',
-    apiKey: '',
-    provider: 'replicate',
     maxAttempts: 10,
   })
   const [pipelineState, setPipelineState] = useState(null)
@@ -688,6 +835,13 @@ export default function App() {
     validateResult: null,
   })
 
+  // VRF B (Functional) tab
+  const [vrfbState, setVrfbState] = useState({
+    p4Code: '',
+    poolStatus: null,
+    testResult: null,
+  })
+
   return (
     <div className="app">
       <header>
@@ -706,7 +860,7 @@ export default function App() {
       {tab === 'pipeline' && <RunPipelineTab form={pipelineForm} setForm={setPipelineForm} pipelineState={pipelineState} setPipelineState={setPipelineState} />}
       {tab === 'compile' && <CompileTab compileState={compileState} setCompileState={setCompileState} />}
       {tab === 'intent' && <IntentTab intentState={intentState} setIntentState={setIntentState} />}
-      {tab === 'functional' && <FunctionalTab />}
+      {tab === 'functional' && <FunctionalTab vrfbState={vrfbState} setVrfbState={setVrfbState} />}
       {tab === 'schemas' && <SchemasTab />}
     </div>
   )

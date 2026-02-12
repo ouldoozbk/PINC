@@ -34,8 +34,19 @@ def clean_p4_code(raw_code: str) -> str:
     # P4-16 uses "const", not "constant" (P4-14). Fix common LLM mistake.
     code = re.sub(r'\bconstant\b', 'const', code)
 
+    # Fix "default: transition <state>" → "default: <state>" inside select blocks.
+    # In P4-16 select expressions, branches map to state names directly (no 'transition' keyword).
+    code = re.sub(r'(\bdefault\s*:\s*)transition\s+', r'\1', code)
+
     # P4-16 uses table_name.apply(), not apply_table(table_name) (P4-14).
     code = re.sub(r'\bapply_table\s*\(\s*(\w+)\s*\)', r'\1.apply()', code)
+
+    # P4-16 actions lists use semicolons, not commas:
+    #   actions = { forward; NoAction; }     ← correct
+    #   actions = { forward, NoAction; }     ← wrong (LLM mistake)
+    def _fix_actions_commas(m):
+        return m.group(0).replace(',', ';')
+    code = re.sub(r'actions\s*=\s*\{[^}]*\}', _fix_actions_commas, code)
 
     # Fix common LLM mistake: using struct type name "metadata" instead of
     # the parameter name "meta" inside control blocks.

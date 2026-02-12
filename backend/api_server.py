@@ -45,12 +45,14 @@ CORS(app)
 # ---------------------------------------------------------------------------
 # Pipeline state (in-memory, single-user demo)
 # ---------------------------------------------------------------------------
+_pipeline_stop = threading.Event()
+
 pipeline_state = {
     "running": False,
     "attempt": 0,
     "max_attempts": 10,
     "status": "idle",          # idle | running | success | failed
-    "stage": "",               # "" | generating | vrf_a | vrf_a5 | done
+    "stage": "",               # "" | generating | vrf_a | vrf_a5 | vrf_b | done
     "logs": [],
     "result": None,
     "expected_behavior": None,
@@ -58,6 +60,7 @@ pipeline_state = {
     "p4_code": None,
     "vrf_a_result": None,
     "vrf_a5_result": None,
+    "vrf_b_result": None,
     "error": None,
 }
 
@@ -74,6 +77,7 @@ def _reset_state():
         "p4_code": None,
         "vrf_a_result": None,
         "vrf_a5_result": None,
+        "vrf_b_result": None,
         "error": None,
     })
 
@@ -201,24 +205,13 @@ def api_run_pipeline():
     intent = data.get("intent", "").strip()
     yang_model = data.get("yang_model", "").strip() or None
     yang_data = data.get("yang_data", "").strip() or None
-    api_key = data.get("api_key", "").strip()
-    provider = data.get("provider", "replicate")  # "replicate" or "openai"
     max_attempts = int(data.get("max_attempts", 10))
 
     if not intent:
         return jsonify({"error": "intent is required"}), 400
-    if not api_key:
-        return jsonify({"error": "api_key is required"}), 400
-
-    # Set environment variable for the chosen provider
-    if provider == "openai":
-        os.environ["OPENAI_API_KEY"] = api_key
-        os.environ.pop("REPLICATE_API_TOKEN", None)
-    else:
-        os.environ["REPLICATE_API_TOKEN"] = api_key
-        os.environ.pop("OPENAI_API_KEY", None)
 
     _reset_state()
+    _pipeline_stop.clear()
     pipeline_state["running"] = True
     pipeline_state["status"] = "running"
     pipeline_state["max_attempts"] = max_attempts
@@ -237,6 +230,16 @@ def api_run_pipeline():
 def api_pipeline_status():
     """Return current pipeline state."""
     return jsonify(pipeline_state)
+
+
+@app.route("/api/stop-pipeline", methods=["POST"])
+def api_stop_pipeline():
+    """Request the running pipeline to stop after the current step."""
+    if not pipeline_state["running"]:
+        return jsonify({"error": "Pipeline is not running"}), 409
+    _pipeline_stop.set()
+    _log("Stop requested — pipeline will halt after current step.")
+    return jsonify({"message": "Stop signal sent"})
 
 
 @app.route("/api/files/<name>", methods=["GET"])
@@ -409,6 +412,37 @@ def api_vrfb_validate():
 # Background pipeline runner
 # ---------------------------------------------------------------------------
 
+def _run_vrf_b(p4_code):
+    """Run VRF B functional testing synchronously. Returns result dict."""
+    if not vrf_b_state["running"] or vrf_b_pool.empty():
+        return {"success": False, "skipped": True, "error": "VRF B pool not running — skipped"}
+
+    try:
+        port = vrf_b_pool.get(timeout=5)
+    except Empty:
+        return {"success": False, "skipped": True, "error": "No VRF B workers available — skipped"}
+
+    try:
+        timeout = VRF_B_CONFIG["timeout"]
+        url = f"http://localhost:{port}/validate"
+        resp = httpx.post(url, json={"code": p4_code}, timeout=timeout)
+        data = resp.json()
+        return {
+            "success": data.get("success", False),
+            "skipped": False,
+            "stdout": data.get("stdout", ""),
+            "stderr": data.get("stderr", ""),
+            "returncode": data.get("returncode"),
+            "error": data.get("error"),
+        }
+    except httpx.TimeoutException:
+        return {"success": False, "skipped": False, "error": f"VRF B timed out ({timeout}s)"}
+    except Exception as e:
+        return {"success": False, "skipped": False, "error": str(e)}
+    finally:
+        vrf_b_pool.put(port)
+
+
 def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
     """Run the full pipeline in a background thread, updating pipeline_state."""
     try:
@@ -433,6 +467,12 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
         generated_p4_code = None
 
         for attempt in range(1, max_attempts + 1):
+            if _pipeline_stop.is_set():
+                pipeline_state["status"] = "failed"
+                pipeline_state["stage"] = "done"
+                _log("Pipeline stopped by user.")
+                return
+
             pipeline_state["attempt"] = attempt
             _log(f"--- Attempt {attempt} of {max_attempts} ---")
 
@@ -450,7 +490,7 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
                 error_section += "\nIMPORTANT: Fix ALL errors. Start with code directly."
                 prompt = create_detailed_prompt(intent, yang_model, yang_data, error_section)
 
-            _log("Generating P4 code via LLM...")
+            _log("Generating P4 code via Replicate...")
             p4_code = generate_p4_code(prompt)
             if p4_code is None:
                 _log("LLM returned no output")
@@ -504,7 +544,20 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
                 _log("[VRF A.5] Intent mismatch — retrying...")
                 continue
 
-            # Success!
+            # VRF B: Functional testing
+            pipeline_state["stage"] = "vrf_b"
+            _log("[VRF B] Running functional tests (p4testgen + PTF)...")
+            vrf_b_result = _run_vrf_b(cleaned)
+            pipeline_state["vrf_b_result"] = vrf_b_result
+
+            if vrf_b_result.get("skipped"):
+                _log(f"[VRF B] Skipped — {vrf_b_result.get('error', 'pool not running')}")
+            elif vrf_b_result.get("success"):
+                _log("[VRF B] All functional tests PASSED")
+            else:
+                _log(f"[VRF B] Functional tests FAILED — {vrf_b_result.get('error', 'see output')}")
+
+            # Pipeline complete (VRF B is informational — doesn't block success)
             pipeline_state["status"] = "success"
             pipeline_state["stage"] = "done"
             _log(f"Pipeline complete! P4 code generated in {attempt} attempt(s).")
@@ -512,6 +565,8 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
                 "p4_code": cleaned,
                 "attempts": attempt,
                 "match_score": score,
+                "vrf_b_passed": vrf_b_result.get("success", False),
+                "vrf_b_skipped": vrf_b_result.get("skipped", True),
             }
             return
 

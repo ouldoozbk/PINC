@@ -303,6 +303,7 @@ KEY POINTS from the template above:
 - "const" is used, never "constant"
 - Tables and actions are INSIDE control blocks, never at the file level
 - Actions are defined BEFORE tables in the control block, never inside a table definition
+- In "actions = { ... }" each action ends with a SEMICOLON, never a comma: actions = { forward; NoAction; }
 - V1Switch(...) main; appears exactly ONCE at the end of the file, AFTER all control definitions
 - The order is: headers/structs, parser, controls (each with actions+tables+apply), V1Switch
 """
@@ -362,7 +363,12 @@ IMPORTANT RULES:
    - NEVER write MyIngress.apply() or MyEgress.apply() or any ControlName.apply().
    - .apply() is a method on TABLE objects only. Controls are invoked by V1Switch, not by calling .apply().
    - Correct: my_table.apply();  WRONG: MyIngress.apply();
-11. Ensure all code follows P4-16 standards and best practices."""
+11. Table actions list syntax — CRITICAL:
+   - In the "actions = { ... }" block inside a table definition, each action is terminated with a SEMICOLON, NOT separated by commas.
+   - Correct:  actions = { forward; NoAction; }
+   - WRONG:    actions = { forward, NoAction; }   ← comma causes a compile error
+   - WRONG:    actions = { forward, drop, NoAction; }   ← commas cause compile errors
+12. Ensure all code follows P4-16 standards and best practices."""
 
 
 # LLM code generation
@@ -484,6 +490,7 @@ IMPORTANT: Analyze the errors above carefully. Common mistakes to avoid:
 - NEVER call ControlName.apply() (e.g. MyIngress.apply()) — .apply() is ONLY for tables, not controls
 - Do NOT create extra control blocks beyond the 6 required by V1Switch (Parser, VerifyChecksum, Ingress, Egress, ComputeChecksum, Deparser)
 - Put ALL logic inside MyIngress/MyEgress, not in separate controls
+- In "actions = { ... }" inside tables, use SEMICOLONS not commas: actions = { forward; NoAction; }  NOT  actions = { forward, NoAction; }
 Generate a COMPLETE, corrected P4-16 program that fixes ALL errors above. Start with the code directly."""
             prompt = create_detailed_prompt(intent, yang_model, yang_data, error_section)
 
