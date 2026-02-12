@@ -1,12 +1,12 @@
-Generate P4-16 code that implements the following network intent: Ethernet switch with MAC learning and forwarding
+Generate P4-16 code that implements the following network intent: Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding
 
 YANG Data (Current Configuration):
 ---------------------------------
 {
-  "intent_id": "intent_b1c60b675d63",
-  "timestamp": "2026-02-11T23:50:54Z",
+  "intent_id": "intent_b2eca0a15eca",
+  "timestamp": "2026-02-12T00:37:07Z",
   "intent_type": "inferred",
-  "raw_intent": "Ethernet switch with MAC learning and forwarding",
+  "raw_intent": "Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding",
   "required_behaviors": [
     {
       "behavior_id": "forwarding",
@@ -21,6 +21,16 @@ YANG Data (Current Configuration):
     {
       "behavior_id": "mac_learning",
       "description": "Inferred from intent: mac learning",
+      "components": {
+        "table_required": true,
+        "table_type": "exact",
+        "key_fields": [],
+        "action_types": []
+      }
+    },
+    {
+      "behavior_id": "mac_forwarding",
+      "description": "Inferred from intent: mac forwarding",
       "components": {
         "table_required": true,
         "table_type": "exact",
@@ -47,7 +57,7 @@ YANG Data (Current Configuration):
 
 
 Please generate P4 code that:
-1. Implements the user's intent: "Ethernet switch with MAC learning and forwarding"
+1. Implements the user's intent: "Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding"
 2. Works with the current network configuration
 3. Respects existing interface and firewall rules
 4. Avoids conflicts with current setup
@@ -141,6 +151,10 @@ KEY POINTS from the template above:
 - Use parameter names (hdr, meta, standard_metadata) NOT type names (headers, metadata, standard_metadata_t) in the body
 - All logic is inside apply { } blocks
 - "const" is used, never "constant"
+- Tables and actions are INSIDE control blocks, never at the file level
+- Actions are defined BEFORE tables in the control block, never inside a table definition
+- V1Switch(...) main; appears exactly ONCE at the end of the file, AFTER all control definitions
+- The order is: headers/structs, parser, controls (each with actions+tables+apply), V1Switch
 
 
 Here is an example mapping of intent, configuration, and P4 code for your reference:

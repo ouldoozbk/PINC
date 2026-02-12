@@ -301,6 +301,10 @@ KEY POINTS from the template above:
 - Use parameter names (hdr, meta, standard_metadata) NOT type names (headers, metadata, standard_metadata_t) in the body
 - All logic is inside apply { } blocks
 - "const" is used, never "constant"
+- Tables and actions are INSIDE control blocks, never at the file level
+- Actions are defined BEFORE tables in the control block, never inside a table definition
+- V1Switch(...) main; appears exactly ONCE at the end of the file, AFTER all control definitions
+- The order is: headers/structs, parser, controls (each with actions+tables+apply), V1Switch
 """
 
     # Add the example at the end of the prompt
@@ -336,6 +340,10 @@ IMPORTANT RULES:
    - Inside a control block, ONLY actions, tables, and the apply { } block are allowed at the top level.
    - ALL packet-processing logic (if/else, table applies, assignments) MUST be inside apply { ... }.
    - Do NOT place any statements or expressions outside of apply { }.
+   - Tables and actions MUST be inside a control block. NEVER define tables at the file level.
+   - Actions MUST be defined at the control block level, NEVER inside a table definition.
+   - The correct structure is: control Name(...) { action a() {...}  table t {...}  apply { t.apply(); } }
+   - WRONG: putting "action" inside "table { ... }" — actions go BEFORE the table, not inside it.
 7. Table application syntax — CRITICAL:
    - P4-16 uses table_name.apply();  (method call on the table object)
    - NEVER use apply_table(table_name);  (that is P4-14 syntax and will NOT compile)

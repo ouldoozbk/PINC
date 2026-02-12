@@ -1,17 +1,18 @@
 {
-  "code_id": "code_085d17ade985",
-  "timestamp": "2026-02-11T23:52:16Z",
+  "code_id": "code_981168020d67",
+  "timestamp": "2026-02-12T00:38:37Z",
   "detected_behaviors": [
     {
-      "behavior_id": "mac_forwarding_impl",
+      "behavior_id": "mac_learning_impl",
       "evidence": {
-        "table_name": "fwd_table",
+        "table_name": "mac_table",
         "table_type": "exact",
         "key_fields": [
-          "hdr.ethernet.dstAddr"
+          "hdr.ethernet.srcAddr"
         ],
         "actions": [
-          "set_egress_port",
+          "learn_mac",
+          "forward",
           "NoAction"
         ],
         "default_action": "NoAction"
@@ -19,8 +20,7 @@
     }
   ],
   "headers_defined": [
-    "ethernet_t",
-    "vlan_t"
+    "ethernet_t"
   ],
   "control_blocks": {
     "ingress": [

@@ -39,16 +39,6 @@
         ["srcAddr", 48, false],
         ["etherType", 16, false]
       ]
-    },
-    {
-      "name" : "vlan_t",
-      "id" : 3,
-      "fields" : [
-        ["pcp", 3, false],
-        ["cfi", 1, false],
-        ["vid", 12, false],
-        ["etherType", 16, false]
-      ]
     }
   ],
   "headers" : [
@@ -70,13 +60,6 @@
       "name" : "ethernet",
       "id" : 2,
       "header_type" : "ethernet_t",
-      "metadata" : false,
-      "pi_omit" : true
-    },
-    {
-      "name" : "vlan",
-      "id" : 3,
-      "header_type" : "vlan_t",
       "metadata" : false,
       "pi_omit" : true
     }
@@ -118,72 +101,6 @@
           ],
           "transitions" : [
             {
-              "type" : "hexstr",
-              "value" : "0x0000",
-              "mask" : null,
-              "next_state" : "parse_ethernet"
-            },
-            {
-              "type" : "default",
-              "value" : null,
-              "mask" : null,
-              "next_state" : null
-            }
-          ],
-          "transition_key" : [
-            {
-              "type" : "field",
-              "value" : ["ethernet", "etherType"]
-            }
-          ]
-        },
-        {
-          "name" : "parse_ethernet",
-          "id" : 1,
-          "parser_ops" : [],
-          "transitions" : [
-            {
-              "type" : "hexstr",
-              "value" : "0x8100",
-              "mask" : null,
-              "next_state" : "parse_vlan"
-            },
-            {
-              "type" : "hexstr",
-              "value" : "0x0800",
-              "mask" : null,
-              "next_state" : null
-            },
-            {
-              "type" : "default",
-              "value" : null,
-              "mask" : null,
-              "next_state" : null
-            }
-          ],
-          "transition_key" : [
-            {
-              "type" : "field",
-              "value" : ["ethernet", "etherType"]
-            }
-          ]
-        },
-        {
-          "name" : "parse_vlan",
-          "id" : 2,
-          "parser_ops" : [
-            {
-              "parameters" : [
-                {
-                  "type" : "regular",
-                  "value" : "vlan"
-                }
-              ],
-              "op" : "extract"
-            }
-          ],
-          "transitions" : [
-            {
               "type" : "default",
               "value" : null,
               "mask" : null,
@@ -202,11 +119,11 @@
       "id" : 0,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 67,
+        "line" : 51,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
-      "order" : ["ethernet", "vlan"],
+      "order" : ["ethernet"],
       "primitives" : []
     }
   ],
@@ -223,8 +140,39 @@
       "primitives" : []
     },
     {
-      "name" : "MyIngress.set_egress_port",
+      "name" : "MyIngress.learn_mac",
       "id" : 1,
+      "runtime_data" : [
+        {
+          "name" : "mac",
+          "bitwidth" : 48
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata.ingress_port"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "ingress_port"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "test.p4",
+            "line" : 29,
+            "column" : 8,
+            "source_fragment" : "meta.ingress_port = standard_metadata.ingress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "MyIngress.forward",
+      "id" : 2,
       "runtime_data" : [
         {
           "name" : "port",
@@ -246,7 +194,7 @@
           ],
           "source_info" : {
             "filename" : "test.p4",
-            "line" : 49,
+            "line" : 32,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = port"
           }
@@ -260,26 +208,26 @@
       "id" : 0,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 47,
+        "line" : 26,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
-      "init_table" : "MyIngress.fwd_table",
+      "init_table" : "MyIngress.mac_table",
       "tables" : [
         {
-          "name" : "MyIngress.fwd_table",
+          "name" : "MyIngress.mac_table",
           "id" : 0,
           "source_info" : {
             "filename" : "test.p4",
-            "line" : 51,
+            "line" : 34,
             "column" : 10,
-            "source_fragment" : "fwd_table"
+            "source_fragment" : "mac_table"
           },
           "key" : [
             {
               "match_type" : "exact",
-              "name" : "hdr.ethernet.dstAddr",
-              "target" : ["ethernet", "dstAddr"],
+              "name" : "hdr.ethernet.srcAddr",
+              "target" : ["ethernet", "srcAddr"],
               "mask" : null
             }
           ],
@@ -289,11 +237,12 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [1, 0],
-          "actions" : ["MyIngress.set_egress_port", "NoAction"],
+          "action_ids" : [1, 2, 0],
+          "actions" : ["MyIngress.learn_mac", "MyIngress.forward", "NoAction"],
           "base_default_next" : null,
           "next_tables" : {
-            "MyIngress.set_egress_port" : null,
+            "MyIngress.learn_mac" : null,
+            "MyIngress.forward" : null,
             "NoAction" : null
           },
           "default_entry" : {
@@ -312,7 +261,7 @@
       "id" : 1,
       "source_info" : {
         "filename" : "test.p4",
-        "line" : 61,
+        "line" : 44,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },

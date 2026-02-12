@@ -1,8 +1,8 @@
 {
-  "intent_id": "intent_1ed28b2405d7",
-  "timestamp": "2026-02-11T23:52:07Z",
+  "intent_id": "intent_b2eca0a15eca",
+  "timestamp": "2026-02-12T00:37:07Z",
   "intent_type": "inferred",
-  "raw_intent": "Ethernet switch with MAC learning and forwarding",
+  "raw_intent": "Implement a basic Ethernet switch with source MAC learning and destination MAC forwarding",
   "required_behaviors": [
     {
       "behavior_id": "forwarding",
@@ -17,6 +17,16 @@
     {
       "behavior_id": "mac_learning",
       "description": "Inferred from intent: mac learning",
+      "components": {
+        "table_required": true,
+        "table_type": "exact",
+        "key_fields": [],
+        "action_types": []
+      }
+    },
+    {
+      "behavior_id": "mac_forwarding",
+      "description": "Inferred from intent: mac forwarding",
       "components": {
         "table_required": true,
         "table_type": "exact",
