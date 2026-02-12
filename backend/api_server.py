@@ -1,9 +1,10 @@
 """
-PINC API Server — Unified Flask backend for the full pipeline.
+PINC API Server — Unified FastAPI backend for the full pipeline.
 
 Endpoints:
   POST /api/run-pipeline        Run full pipeline (intent → P4 code → VRF A → VRF A.5)
   GET  /api/pipeline-status     Poll live pipeline state
+  POST /api/stop-pipeline       Stop the running pipeline
   POST /api/parse-intent        Convert intent text → expected_behavior.json
   POST /api/extract-behavior    Extract actual_behavior.json from P4 code
   POST /api/compare             Compare expected vs actual behavior
@@ -13,22 +14,26 @@ Endpoints:
   GET  /api/vrf-b/status        Container pool health / availability
   POST /api/vrf-b/start-pool    Start the VRF B container pool
   POST /api/vrf-b/stop-pool     Stop the VRF B container pool
-  GET  /api/files/<name>        Retrieve generated files
+  GET  /api/files/{name}        Retrieve generated files
+  POST /validate                Dispatcher-compatible VRF B endpoint (p4testgen)
 """
+
+from __future__ import annotations
 
 import json
 import os
 import subprocess
 import sys
 import threading
-import time
-import uuid
 from datetime import datetime, timezone
 from queue import Queue, Empty
+from typing import Any, Dict, Optional
 
 import httpx
-from flask import Flask, jsonify, request, send_file
-from flask_cors import CORS
+from fastapi import Body, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -36,18 +41,73 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vrf_a_compiler import clean_p4_code, validate_p4_compilation, read_error_summary
 from vrf_a5_intent_parser import generate_expected_behavior, save_expected_behavior
 from vrf_a5_behavior_extractor import extract_behavior_from_code, save_actual_behavior
-from vrf_a5_semantic_comparator import compute_intent_match_score, generate_intent_mismatch_feedback, format_feedback_for_llm
+from vrf_a5_semantic_comparator import (
+    compute_intent_match_score,
+    generate_intent_mismatch_feedback,
+    format_feedback_for_llm,
+)
 from vrf_a5_validator import run_vrf_a5, validate_intent
 
-app = Flask(__name__)
-CORS(app)
 
-# ---------------------------------------------------------------------------
+# Pydantic request models
+class IntentRequest(BaseModel):
+    intent: str
+
+
+class P4CodeRequest(BaseModel):
+    p4_code: str
+
+
+class CompareRequest(BaseModel):
+    expected_behavior: Dict[str, Any]
+    actual_behavior: Dict[str, Any]
+
+
+class ValidateIntentRequest(BaseModel):
+    p4_code: str
+    expected_behavior: Optional[Dict[str, Any]] = None
+
+
+class PipelineRequest(BaseModel):
+    intent: str
+    yang_model: Optional[str] = None
+    yang_data: Optional[str] = None
+    max_attempts: int = 10
+
+
+class VrfBCodeRequest(BaseModel):
+    """Request body for /api/vrf-b/validate."""
+    p4_code: str
+
+
+class DispatchCodeRequest(BaseModel):
+    """Request body for /validate (p4testgen dispatcher compat)."""
+    code: str
+
+
+class PoolConfigRequest(BaseModel):
+    num_containers: Optional[int] = None
+    port_start: Optional[int] = None
+
+
+app = FastAPI(
+    title="PINC API Server",
+    description="Unified backend for the PINC P4 code generation & verification pipeline.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # Pipeline state (in-memory, single-user demo)
-# ---------------------------------------------------------------------------
 _pipeline_stop = threading.Event()
 
-pipeline_state = {
+pipeline_state: Dict[str, Any] = {
     "running": False,
     "attempt": 0,
     "max_attempts": 10,
@@ -82,49 +142,45 @@ def _reset_state():
     })
 
 
-def _log(msg):
+def _log(msg: str):
     pipeline_state["logs"].append({
         "time": datetime.now(timezone.utc).isoformat(),
         "message": msg,
     })
 
 
-# ---------------------------------------------------------------------------
-# API Endpoints
-# ---------------------------------------------------------------------------
-
-@app.route("/api/parse-intent", methods=["POST"])
-def api_parse_intent():
+@app.post("/api/parse-intent")
+def api_parse_intent(req: IntentRequest):
     """Convert natural language intent → expected_behavior.json."""
-    data = request.get_json(force=True)
-    intent = data.get("intent", "").strip()
+    intent = req.intent.strip()
     if not intent:
-        return jsonify({"error": "intent is required"}), 400
+        return JSONResponse(status_code=400, content={"error": "intent is required"})
 
     expected = generate_expected_behavior(intent)
-    return jsonify({"expected_behavior": expected})
+    return {"expected_behavior": expected}
 
 
-@app.route("/api/extract-behavior", methods=["POST"])
-def api_extract_behavior():
+@app.post("/api/extract-behavior")
+def api_extract_behavior(req: P4CodeRequest):
     """Extract actual_behavior.json from P4 source code."""
-    data = request.get_json(force=True)
-    p4_code = data.get("p4_code", "").strip()
+    p4_code = req.p4_code.strip()
     if not p4_code:
-        return jsonify({"error": "p4_code is required"}), 400
+        return JSONResponse(status_code=400, content={"error": "p4_code is required"})
 
     actual = extract_behavior_from_code(p4_code)
-    return jsonify({"actual_behavior": actual})
+    return {"actual_behavior": actual}
 
 
-@app.route("/api/compare", methods=["POST"])
-def api_compare():
+@app.post("/api/compare")
+def api_compare(req: CompareRequest):
     """Compare expected_behavior vs actual_behavior and return scores."""
-    data = request.get_json(force=True)
-    expected = data.get("expected_behavior")
-    actual = data.get("actual_behavior")
+    expected = req.expected_behavior
+    actual = req.actual_behavior
     if not expected or not actual:
-        return jsonify({"error": "Both expected_behavior and actual_behavior are required"}), 400
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Both expected_behavior and actual_behavior are required"},
+        )
 
     score, detailed = compute_intent_match_score(expected, actual)
     feedback = None
@@ -132,45 +188,42 @@ def api_compare():
         fb = generate_intent_mismatch_feedback(expected, actual, detailed, score)
         feedback = format_feedback_for_llm(fb)
 
-    return jsonify({
+    return {
         "match_score": score,
         "detailed_scores": detailed,
         "feedback": feedback,
-    })
+    }
 
 
-@app.route("/api/compile", methods=["POST"])
-def api_compile():
+@app.post("/api/compile")
+def api_compile(req: P4CodeRequest):
     """Run VRF A: clean P4 code and compile via Docker p4c."""
-    data = request.get_json(force=True)
-    p4_code = data.get("p4_code", "").strip()
+    p4_code = req.p4_code.strip()
     if not p4_code:
-        return jsonify({"error": "p4_code is required"}), 400
+        return JSONResponse(status_code=400, content={"error": "p4_code is required"})
 
     cleaned = clean_p4_code(p4_code)
     with open("test.p4", "w") as f:
         f.write(cleaned)
 
     success, errors = validate_p4_compilation(cleaned, "test.p4", attempt=1)
-    return jsonify({
+    return {
         "success": success,
         "cleaned_code": cleaned,
         "errors": errors,
-    })
+    }
 
 
-@app.route("/api/validate-intent", methods=["POST"])
-def api_validate_intent():
+@app.post("/api/validate-intent")
+def api_validate_intent(req: ValidateIntentRequest):
     """Run VRF A.5 only: compare P4 code against expected_behavior.json."""
-    data = request.get_json(force=True)
-    p4_code = data.get("p4_code", "").strip()
-    expected = data.get("expected_behavior")
+    p4_code = req.p4_code.strip()
     if not p4_code:
-        return jsonify({"error": "p4_code is required"}), 400
+        return JSONResponse(status_code=400, content={"error": "p4_code is required"})
 
     # Save expected if provided
-    if expected:
-        save_expected_behavior(expected, "expected_behavior.json")
+    if req.expected_behavior:
+        save_expected_behavior(req.expected_behavior, "expected_behavior.json")
 
     passed, feedback, score, detailed = run_vrf_a5(
         p4_code,
@@ -186,29 +239,28 @@ def api_validate_intent():
     except Exception:
         pass
 
-    return jsonify({
+    return {
         "passed": passed,
         "match_score": score,
         "detailed_scores": detailed,
         "feedback": feedback,
         "actual_behavior": actual,
-    })
+    }
 
 
-@app.route("/api/run-pipeline", methods=["POST"])
-def api_run_pipeline():
+@app.post("/api/run-pipeline")
+def api_run_pipeline(req: PipelineRequest):
     """Start the full pipeline in a background thread."""
     if pipeline_state["running"]:
-        return jsonify({"error": "Pipeline is already running"}), 409
+        return JSONResponse(status_code=409, content={"error": "Pipeline is already running"})
 
-    data = request.get_json(force=True)
-    intent = data.get("intent", "").strip()
-    yang_model = data.get("yang_model", "").strip() or None
-    yang_data = data.get("yang_data", "").strip() or None
-    max_attempts = int(data.get("max_attempts", 10))
-
+    intent = req.intent.strip()
     if not intent:
-        return jsonify({"error": "intent is required"}), 400
+        return JSONResponse(status_code=400, content={"error": "intent is required"})
+
+    yang_model = (req.yang_model or "").strip() or None
+    yang_data = (req.yang_data or "").strip() or None
+    max_attempts = req.max_attempts
 
     _reset_state()
     _pipeline_stop.clear()
@@ -223,43 +275,40 @@ def api_run_pipeline():
     )
     thread.start()
 
-    return jsonify({"message": "Pipeline started", "status": "running"})
+    return {"message": "Pipeline started", "status": "running"}
 
 
-@app.route("/api/pipeline-status", methods=["GET"])
+@app.get("/api/pipeline-status")
 def api_pipeline_status():
     """Return current pipeline state."""
-    return jsonify(pipeline_state)
+    return pipeline_state
 
 
-@app.route("/api/stop-pipeline", methods=["POST"])
+@app.post("/api/stop-pipeline")
 def api_stop_pipeline():
     """Request the running pipeline to stop after the current step."""
     if not pipeline_state["running"]:
-        return jsonify({"error": "Pipeline is not running"}), 409
+        return JSONResponse(status_code=409, content={"error": "Pipeline is not running"})
     _pipeline_stop.set()
     _log("Stop requested — pipeline will halt after current step.")
-    return jsonify({"message": "Stop signal sent"})
+    return {"message": "Stop signal sent"}
 
 
-@app.route("/api/files/<name>", methods=["GET"])
-def api_get_file(name):
+@app.get("/api/files/{name}")
+def api_get_file(name: str):
     """Retrieve generated files."""
     allowed = {
         "test.p4", "expected_behavior.json", "actual_behavior.json",
         "error_summary.txt", "validation_status.txt", "detailed_prompt.txt",
     }
     if name not in allowed:
-        return jsonify({"error": "File not allowed"}), 403
+        return JSONResponse(status_code=403, content={"error": "File not allowed"})
     if not os.path.exists(name):
-        return jsonify({"error": "File not found"}), 404
-    return send_file(name)
+        return JSONResponse(status_code=404, content={"error": "File not found"})
+    return FileResponse(name)
 
 
-# ---------------------------------------------------------------------------
 # VRF B: Container pool management (p4testgen functional testing)
-# ---------------------------------------------------------------------------
-
 VRF_B_CONFIG = {
     "image": "p4_test_suite",
     "port_start": 8022,
@@ -267,8 +316,8 @@ VRF_B_CONFIG = {
     "timeout": 60,
 }
 
-vrf_b_pool = Queue()
-vrf_b_state = {
+vrf_b_pool: Queue[int] = Queue()
+vrf_b_state: Dict[str, Any] = {
     "running": False,
     "total": 0,
     "available": 0,
@@ -276,7 +325,10 @@ vrf_b_state = {
 }
 
 
-def _vrfb_start_pool(num_containers=None, port_start=None):
+def _vrfb_start_pool(
+    num_containers: int | None = None,
+    port_start: int | None = None,
+) -> list[int]:
     """Start VRF B Docker worker containers and fill the pool."""
     n = num_containers or VRF_B_CONFIG["num_containers"]
     ps = port_start or VRF_B_CONFIG["port_start"]
@@ -290,20 +342,25 @@ def _vrfb_start_pool(num_containers=None, port_start=None):
             break
 
     ports = list(range(ps, ps + n))
-    started = []
+    started: list[int] = []
 
     for port in ports:
-        name = f"p4_container_{port}"
+        cname = f"p4_container_{port}"
         # Stop any leftover container with same name
-        subprocess.run(["docker", "rm", "-f", name],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        result = subprocess.run([
-            "docker", "run", "-d",
-            "--name", name,
-            "--rm", "--privileged", "--cap-add=NET_ADMIN",
-            "-p", f"{port}:8000",
-            image,
-        ], capture_output=True, text=True)
+        subprocess.run(
+            ["docker", "rm", "-f", cname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        result = subprocess.run(
+            [
+                "docker", "run", "-d",
+                "--name", cname,
+                "--rm", "--privileged", "--cap-add=NET_ADMIN",
+                "-p", f"{port}:8000",
+                image,
+            ],
+            capture_output=True, text=True,
+        )
         if result.returncode == 0:
             vrf_b_pool.put(port)
             started.append(port)
@@ -320,9 +377,11 @@ def _vrfb_start_pool(num_containers=None, port_start=None):
 def _vrfb_stop_pool():
     """Stop all VRF B containers."""
     for port in vrf_b_state.get("ports", []):
-        name = f"p4_container_{port}"
-        subprocess.run(["docker", "stop", name],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        cname = f"p4_container_{port}"
+        subprocess.run(
+            ["docker", "stop", cname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
 
     # Drain pool
     while not vrf_b_pool.empty():
@@ -339,80 +398,104 @@ def _vrfb_stop_pool():
     })
 
 
-@app.route("/api/vrf-b/status", methods=["GET"])
+@app.get("/api/vrf-b/status")
 def api_vrfb_status():
     """Return VRF B container pool status."""
     vrf_b_state["available"] = vrf_b_pool.qsize()
-    return jsonify(vrf_b_state)
+    return vrf_b_state
 
 
-@app.route("/api/vrf-b/start-pool", methods=["POST"])
-def api_vrfb_start_pool():
+@app.post("/api/vrf-b/start-pool")
+def api_vrfb_start_pool(req: Optional[PoolConfigRequest] = Body(default=None)):
     """Start the VRF B container pool."""
     if vrf_b_state["running"]:
-        return jsonify({"error": "Pool is already running", **vrf_b_state}), 409
+        return JSONResponse(
+            status_code=409,
+            content={"error": "Pool is already running", **vrf_b_state},
+        )
 
-    data = request.get_json(force=True) if request.is_json else {}
-    n = int(data.get("num_containers", VRF_B_CONFIG["num_containers"]))
-    ps = int(data.get("port_start", VRF_B_CONFIG["port_start"]))
+    n = (req.num_containers if req else None) or VRF_B_CONFIG["num_containers"]
+    ps = (req.port_start if req else None) or VRF_B_CONFIG["port_start"]
 
     started = _vrfb_start_pool(num_containers=n, port_start=ps)
     if not started:
-        return jsonify({"error": "Failed to start containers. Is the p4_test_suite image built?"}), 500
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to start containers. Is the p4_test_suite image built?"},
+        )
 
-    return jsonify({"message": f"Started {len(started)} containers", **vrf_b_state})
+    return {"message": f"Started {len(started)} containers", **vrf_b_state}
 
 
-@app.route("/api/vrf-b/stop-pool", methods=["POST"])
+@app.post("/api/vrf-b/stop-pool")
 def api_vrfb_stop_pool():
     """Stop the VRF B container pool."""
     _vrfb_stop_pool()
-    return jsonify({"message": "Pool stopped", **vrf_b_state})
+    return {"message": "Pool stopped", **vrf_b_state}
 
 
-@app.route("/api/vrf-b/validate", methods=["POST"])
-def api_vrfb_validate():
-    """Run VRF B: send P4 code to a worker container for functional testing."""
-    data = request.get_json(force=True)
-    p4_code = data.get("p4_code", "").strip()
-    if not p4_code:
-        return jsonify({"error": "p4_code is required"}), 400
-
+def _dispatch_to_worker(p4_code: str) -> tuple[dict, int]:
+    """Send P4 code to a VRF B worker container. Returns (result_dict, http_status)."""
     if not vrf_b_state["running"] or vrf_b_pool.empty():
-        return jsonify({
-            "error": "VRF B container pool is not running or no workers available. Start the pool first.",
-        }), 503
+        return {
+            "error": (
+                "VRF B container pool is not running or no workers available. "
+                "Start the pool first."
+            ),
+        }, 503
 
     try:
         port = vrf_b_pool.get(timeout=5)
     except Empty:
-        return jsonify({"error": "All VRF B workers are busy. Try again later."}), 503
+        return {"error": "All VRF B workers are busy. Try again later."}, 503
 
     try:
         timeout = VRF_B_CONFIG["timeout"]
         url = f"http://localhost:{port}/validate"
         resp = httpx.post(url, json={"code": p4_code}, timeout=timeout)
         result = resp.json()
-        return jsonify({
+        return {
             "success": result.get("success", False),
             "stdout": result.get("stdout", ""),
             "stderr": result.get("stderr", ""),
             "returncode": result.get("returncode"),
             "error": result.get("error"),
-        }), resp.status_code
+        }, resp.status_code
     except httpx.TimeoutException:
-        return jsonify({"success": False, "error": f"VRF B validation timed out ({timeout}s)"}), 504
+        return {
+            "success": False,
+            "error": f"VRF B validation timed out ({timeout}s)",
+        }, 504
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return {"success": False, "error": str(e)}, 500
     finally:
         vrf_b_pool.put(port)
 
 
-# ---------------------------------------------------------------------------
-# Background pipeline runner
-# ---------------------------------------------------------------------------
+@app.post("/api/vrf-b/validate")
+def api_vrfb_validate(req: VrfBCodeRequest):
+    """Run VRF B: send P4 code to a worker container for functional testing."""
+    p4_code = req.p4_code.strip()
+    if not p4_code:
+        return JSONResponse(status_code=400, content={"error": "p4_code is required"})
 
-def _run_vrf_b(p4_code):
+    result, status = _dispatch_to_worker(p4_code)
+    return JSONResponse(status_code=status, content=result)
+
+
+@app.post("/validate")
+def dispatch_validate(req: DispatchCodeRequest):
+    """p4testgen dispatcher-compatible endpoint (formerly standalone main.py server)."""
+    code = req.code.strip()
+    if not code:
+        return JSONResponse(status_code=400, content={"error": "code is required"})
+
+    result, status = _dispatch_to_worker(code)
+    return JSONResponse(status_code=status, content=result)
+
+
+# Background pipeline runner
+def _run_vrf_b(p4_code: str) -> dict:
     """Run VRF B functional testing synchronously. Returns result dict."""
     if not vrf_b_state["running"] or vrf_b_pool.empty():
         return {"success": False, "skipped": True, "error": "VRF B pool not running — skipped"}
@@ -484,7 +567,10 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
                     f.write(prompt)
             else:
                 error_history = read_error_summary()
-                error_section = f"\n=== PREVIOUS ATTEMPT THAT FAILED ===\n{generated_p4_code}\n\n=== COMPILATION / VALIDATION ERROR HISTORY ===\n{error_history}\n"
+                error_section = (
+                    f"\n=== PREVIOUS ATTEMPT THAT FAILED ===\n{generated_p4_code}\n\n"
+                    f"=== COMPILATION / VALIDATION ERROR HISTORY ===\n{error_history}\n"
+                )
                 if intent_feedback:
                     error_section += f"\n=== INTENT VALIDATION FEEDBACK ===\n{intent_feedback}\n"
                 error_section += "\nIMPORTANT: Fix ALL errors. Start with code directly."
@@ -583,8 +669,7 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
         pipeline_state["running"] = False
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    import uvicorn
+
+    uvicorn.run("api_server:app", host="0.0.0.0", port=5001, reload=True)

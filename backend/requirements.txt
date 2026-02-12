@@ -1,4 +1,4 @@
-flask
-flask-cors
+fastapi
+uvicorn[standard]
 httpx
 replicate
