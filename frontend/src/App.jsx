@@ -1,31 +1,62 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 const API = '' // proxied via vite
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function scoreColor(v) {
-  if (v >= 0.85) return 'green'
-  if (v >= 0.6) return 'yellow'
-  return 'red'
+function scoreTextCls(v) {
+  if (v >= 0.85) return 'text-success'
+  if (v >= 0.6) return 'text-warning'
+  return 'text-danger'
+}
+
+function scoreBgCls(v) {
+  if (v >= 0.85) return 'bg-success'
+  if (v >= 0.6) return 'bg-warning'
+  return 'bg-danger'
 }
 
 function pretty(obj) {
   return JSON.stringify(obj, null, 2)
 }
 
+// Reusable class strings
+const inputCls =
+  'w-full px-3.5 py-2.5 bg-input border border-edge rounded-lg text-body font-sans text-sm outline-none transition-colors focus:border-accent'
+const textareaCls = `${inputCls} resize-y min-h-20 font-mono text-[0.82rem] leading-relaxed`
+const tallTextareaCls = `${inputCls} resize-y min-h-[200px] font-mono text-[0.82rem] leading-relaxed`
+const selectCls = `${inputCls} cursor-pointer`
+const btnCls = 'inline-flex items-center gap-1.5 font-semibold rounded-lg cursor-pointer transition-all duration-200'
+const btnPrimary = `${btnCls} px-5 py-2.5 text-sm bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed`
+const btnPrimarySm = `${btnCls} px-3 py-1.5 text-xs bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed`
+const btnSecondary = `${btnCls} px-3 py-1.5 text-xs bg-input text-body border border-edge hover:border-muted`
+const cardCls = 'bg-card border border-edge rounded-[10px] p-5 mb-4'
+const cardTitle = 'text-[0.85rem] font-semibold uppercase tracking-wider text-muted mb-3'
+const badgeBase = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[0.72rem] font-semibold uppercase'
+const badgeSuccess = `${badgeBase} bg-success/12 text-success`
+const badgeError = `${badgeBase} bg-danger/12 text-danger`
+const badgeInfo = `${badgeBase} bg-info/12 text-info`
+const jsonViewer =
+  'bg-input border border-edge rounded-lg p-3.5 font-mono text-[0.78rem] leading-relaxed max-h-[400px] overflow-auto whitespace-pre-wrap break-words'
+const codeViewer =
+  'bg-code-bg border border-edge rounded-lg p-4 font-mono text-[0.8rem] leading-[1.7] max-h-[500px] overflow-auto whitespace-pre text-code-text'
+const spinnerCls = 'inline-block w-4 h-4 border-2 border-edge border-t-accent rounded-full animate-spin'
+
 // ─── Score Bar ────────────────────────────────────────────────────────────
 
 function ScoreBar({ label, value }) {
   const pct = Math.round(value * 100)
   return (
-    <div className="score-bar-container">
-      <div className="score-label">
-        <span>{label}</span>
-        <span style={{ fontWeight: 600, color: `var(--${scoreColor(value)})` }}>{pct}%</span>
+    <div className="mb-2">
+      <div className="flex justify-between text-[0.78rem] mb-1">
+        <span className="text-muted">{label}</span>
+        <span className={`font-semibold ${scoreTextCls(value)}`}>{pct}%</span>
       </div>
-      <div className="score-bar">
-        <div className={`score-fill ${scoreColor(value)}`} style={{ width: `${pct}%` }} />
+      <div className="h-2 bg-input rounded overflow-hidden">
+        <div
+          className={`h-full rounded transition-all duration-500 ${scoreBgCls(value)}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   )
@@ -46,24 +77,48 @@ const STAGES = [
 function PipelineFlow({ currentStage, status }) {
   const idx = STAGES.findIndex(s => s.key === currentStage)
   return (
-    <div className="pipeline-flow">
+    <div className="flex items-center justify-center gap-2 mb-7 px-5 py-4 bg-card border border-edge rounded-[10px] overflow-x-auto">
       {STAGES.map((s, i) => {
-        let cls = 'pipeline-step'
-        if (i === idx) cls += status === 'failed' && i === STAGES.length - 1 ? ' failed' : ' active'
-        else if (i < idx) cls += ' done'
+        const isFailed = i === idx && status === 'failed' && i === STAGES.length - 1
+        const isActive = i === idx && !isFailed
+        const isDone = i < idx
 
-        const stepNum = i + 1
+        let stepCls =
+          'inline-flex items-center gap-[7px] px-4 py-[7px] rounded-full text-[0.78rem] font-semibold border-[1.5px] whitespace-nowrap shrink-0 transition-all duration-300 '
+        let numCls =
+          'inline-flex items-center justify-center w-5 h-5 rounded-full text-[0.68rem] font-bold shrink-0 '
+
+        if (isFailed) {
+          stepCls += 'border-danger text-danger bg-danger/12'
+          numCls += 'bg-danger text-white'
+        } else if (isActive) {
+          stepCls += 'border-accent text-accent bg-accent/12 shadow-[0_0_12px_rgba(108,92,231,0.2)]'
+          numCls += 'bg-accent text-white'
+        } else if (isDone) {
+          stepCls += 'border-success text-success bg-success/12'
+          numCls += 'bg-success text-white'
+        } else {
+          stepCls += 'bg-input border-edge text-muted'
+          numCls += 'bg-edge text-surface'
+        }
+
         return (
           <React.Fragment key={s.key}>
             {i > 0 && (
-              <span className="pipeline-arrow">
+              <span className="inline-flex items-center text-muted shrink-0 opacity-45">
                 <svg width="20" height="12" viewBox="0 0 20 12" fill="none">
-                  <path d="M0 6h16m0 0l-4-4.5M16 6l-4 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path
+                    d="M0 6h16m0 0l-4-4.5M16 6l-4 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </span>
             )}
-            <span className={cls}>
-              <span className="pipeline-step-num">{stepNum}</span>
+            <span className={stepCls}>
+              <span className={numCls}>{i + 1}</span>
               {s.label}
             </span>
           </React.Fragment>
@@ -92,28 +147,38 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
     const res = await fetch(`${API}/api/run-pipeline`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent, yang_model: yangModel, yang_data: yangData, api_key: apiKey, provider, max_attempts: maxAttempts }),
+      body: JSON.stringify({
+        intent,
+        yang_model: yangModel,
+        yang_data: yangData,
+        api_key: apiKey,
+        provider,
+        max_attempts: maxAttempts,
+      }),
     })
     if (!res.ok) {
       const err = await res.json()
       alert(err.error || 'Failed to start pipeline')
       return
     }
-    // Start polling
     polling.current = setInterval(async () => {
       try {
         const r = await fetch(`${API}/api/pipeline-status`)
         const d = await r.json()
         setPipelineState(d)
         if (!d.running) clearInterval(polling.current)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }, 1500)
   }
 
   const stop = async () => {
     try {
       await fetch(`${API}/api/stop-pipeline`, { method: 'POST' })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   useEffect(() => () => clearInterval(polling.current), [])
@@ -126,15 +191,18 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
     <div>
       <PipelineFlow currentStage={stage} status={status} />
 
-      <div className="grid-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left: Inputs */}
         <div>
-          <div className="card">
-            <div className="card-title">Pipeline Inputs</div>
+          <div className={cardCls}>
+            <div className={cardTitle}>Pipeline Inputs</div>
 
-            <div className="form-group">
-              <label>Network Intent *</label>
+            <div className="mb-4">
+              <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                Network Intent *
+              </label>
               <textarea
+                className={textareaCls}
                 value={intent}
                 onChange={e => setField('intent', e.target.value)}
                 placeholder="e.g. Create a P4 program for basic Ethernet switch with source MAC learning and destination MAC forwarding"
@@ -142,41 +210,89 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
               />
             </div>
 
-            <div className="inline-row">
-              <div className="form-group">
-                <label>LLM Provider</label>
-                <select value={provider} onChange={e => setField('provider', e.target.value)}>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1 mb-4">
+                <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                  LLM Provider
+                </label>
+                <select
+                  className={selectCls}
+                  value={provider}
+                  onChange={e => setField('provider', e.target.value)}
+                >
                   <option value="replicate">Replicate (Llama 3)</option>
                   <option value="openai">OpenAI (GPT-4)</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Max Attempts</label>
-                <input type="number" value={maxAttempts} onChange={e => setField('maxAttempts', e.target.value)} min={1} max={20} />
+              <div className="flex-1 mb-4">
+                <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                  Max Attempts
+                </label>
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={maxAttempts}
+                  onChange={e => setField('maxAttempts', e.target.value)}
+                  min={1}
+                  max={20}
+                />
               </div>
             </div>
 
-            <div className="form-group">
-              <label>API Key *</label>
-              <input type="password" value={apiKey} onChange={e => setField('apiKey', e.target.value)} placeholder={provider === 'openai' ? 'sk-...' : 'r8_...'} />
+            <div className="mb-4">
+              <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                API Key *
+              </label>
+              <input
+                className={inputCls}
+                type="password"
+                value={apiKey}
+                onChange={e => setField('apiKey', e.target.value)}
+                placeholder={provider === 'openai' ? 'sk-...' : 'r8_...'}
+              />
             </div>
 
-            <div className="form-group">
-              <label>YANG Model (optional)</label>
-              <textarea value={yangModel} onChange={e => setField('yangModel', e.target.value)} placeholder="Paste YANG schema here..." rows={3} />
+            <div className="mb-4">
+              <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                YANG Model (optional)
+              </label>
+              <textarea
+                className={textareaCls}
+                value={yangModel}
+                onChange={e => setField('yangModel', e.target.value)}
+                placeholder="Paste YANG schema here..."
+                rows={3}
+              />
             </div>
 
-            <div className="form-group">
-              <label>YANG Data / JSON Config (optional)</label>
-              <textarea value={yangData} onChange={e => setField('yangData', e.target.value)} placeholder='Paste JSON configuration here...' rows={3} />
+            <div className="mb-4">
+              <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+                YANG Data / JSON Config (optional)
+              </label>
+              <textarea
+                className={textareaCls}
+                value={yangData}
+                onChange={e => setField('yangData', e.target.value)}
+                placeholder="Paste JSON configuration here..."
+                rows={3}
+              />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <button className="btn btn-primary" onClick={start} disabled={running || !intent || !apiKey}>
-                {running ? <><span className="spinner" /> Running...</> : 'Run Pipeline'}
+            <div className="flex gap-2.5 items-center">
+              <button className={btnPrimary} onClick={start} disabled={running || !intent || !apiKey}>
+                {running ? (
+                  <>
+                    <span className={spinnerCls} /> Running...
+                  </>
+                ) : (
+                  'Run Pipeline'
+                )}
               </button>
               {running && (
-                <button className="btn" onClick={stop} style={{ background: '#dc2626', color: '#fff', border: 'none' }}>
+                <button
+                  className={`${btnCls} px-5 py-2.5 text-sm bg-[#dc2626] text-white border-none`}
+                  onClick={stop}
+                >
                   Stop
                 </button>
               )}
@@ -188,40 +304,49 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
         <div>
           {/* VRF A */}
           {state?.vrf_a_result && (
-            <div className="card">
-              <div className="card-title">VRF A — Compilation</div>
+            <div className={cardCls}>
+              <div className={cardTitle}>VRF A — Compilation</div>
               {state.vrf_a_result.success ? (
-                <span className="badge badge-success">Compiled</span>
+                <span className={badgeSuccess}>Compiled</span>
               ) : (
-                <span className="badge badge-error">Failed</span>
+                <span className={badgeError}>Failed</span>
               )}
               {state.vrf_a_result.errors && (
-                <pre className="json-viewer" style={{ marginTop: 10, maxHeight: 150 }}>{state.vrf_a_result.errors}</pre>
+                <pre className={`${jsonViewer} mt-2.5 max-h-[150px]`}>{state.vrf_a_result.errors}</pre>
               )}
             </div>
           )}
 
           {/* VRF A.5 */}
           {state?.vrf_a5_result && (
-            <div className="card">
-              <div className="card-title">VRF A.5 — Intent Validation</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div className={cardCls}>
+              <div className={cardTitle}>VRF A.5 — Intent Validation</div>
+              <div className="flex items-center gap-2.5 mb-3">
                 {state.vrf_a5_result.passed ? (
-                  <span className="badge badge-success">Passed</span>
+                  <span className={badgeSuccess}>Passed</span>
                 ) : (
-                  <span className="badge badge-error">Failed</span>
+                  <span className={badgeError}>Failed</span>
                 )}
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <span className="text-[0.82rem] text-muted">
                   Attempt {state.attempt} / {state.max_attempts}
                 </span>
               </div>
               <ScoreBar label="Overall" value={state.vrf_a5_result.match_score} />
               {state.vrf_a5_result.detailed_scores && (
                 <>
-                  <ScoreBar label="Required Behaviors" value={state.vrf_a5_result.detailed_scores.required_behaviors || 0} />
+                  <ScoreBar
+                    label="Required Behaviors"
+                    value={state.vrf_a5_result.detailed_scores.required_behaviors || 0}
+                  />
                   <ScoreBar label="Headers" value={state.vrf_a5_result.detailed_scores.headers || 0} />
-                  <ScoreBar label="Control Blocks" value={state.vrf_a5_result.detailed_scores.control_blocks || 0} />
-                  <ScoreBar label="Prohibited Check" value={state.vrf_a5_result.detailed_scores.prohibited_check || 0} />
+                  <ScoreBar
+                    label="Control Blocks"
+                    value={state.vrf_a5_result.detailed_scores.control_blocks || 0}
+                  />
+                  <ScoreBar
+                    label="Prohibited Check"
+                    value={state.vrf_a5_result.detailed_scores.prohibited_check || 0}
+                  />
                 </>
               )}
             </div>
@@ -229,38 +354,48 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
 
           {/* VRF B */}
           {state?.vrf_b_result && (
-            <div className="card">
-              <div className="card-title">VRF B — Functional Testing</div>
+            <div className={cardCls}>
+              <div className={cardTitle}>VRF B — Functional Testing</div>
               {state.vrf_b_result.skipped ? (
-                <span className="badge badge-info">Skipped</span>
+                <span className={badgeInfo}>Skipped</span>
               ) : state.vrf_b_result.success ? (
-                <span className="badge badge-success">All Tests Passed</span>
+                <span className={badgeSuccess}>All Tests Passed</span>
               ) : (
-                <span className="badge badge-error">Tests Failed</span>
+                <span className={badgeError}>Tests Failed</span>
               )}
               {state.vrf_b_result.error && (
-                <p style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{state.vrf_b_result.error}</p>
+                <p className="mt-2 text-[0.82rem] text-muted">{state.vrf_b_result.error}</p>
               )}
               {state.vrf_b_result.stdout && (
-                <pre className="code-viewer" style={{ marginTop: 10, maxHeight: 200 }}>{state.vrf_b_result.stdout}</pre>
+                <pre className={`${codeViewer} mt-2.5 max-h-[200px]`}>{state.vrf_b_result.stdout}</pre>
               )}
               {state.vrf_b_result.stderr && (
-                <pre className="code-viewer" style={{ marginTop: 6, maxHeight: 120, color: 'var(--yellow)' }}>{state.vrf_b_result.stderr}</pre>
+                <pre className={`${codeViewer} mt-1.5 max-h-[120px] text-warning`}>
+                  {state.vrf_b_result.stderr}
+                </pre>
               )}
             </div>
           )}
 
           {/* Status */}
           {state && (
-            <div className="card">
-              <div className="card-title">Status</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                {status === 'running' && <span className="spinner" />}
-                <span className={`badge ${status === 'success' ? 'badge-success' : status === 'failed' ? 'badge-error' : 'badge-info'}`}>
+            <div className={cardCls}>
+              <div className={cardTitle}>Status</div>
+              <div className="flex items-center gap-2 mb-2">
+                {status === 'running' && <span className={spinnerCls} />}
+                <span
+                  className={
+                    status === 'success'
+                      ? badgeSuccess
+                      : status === 'failed'
+                        ? badgeError
+                        : badgeInfo
+                  }
+                >
                   {status}
                 </span>
                 {state.attempt > 0 && (
-                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  <span className="text-[0.82rem] text-muted">
                     Attempt {state.attempt} / {state.max_attempts}
                   </span>
                 )}
@@ -270,16 +405,16 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
 
           {/* Generated P4 Code */}
           {state?.p4_code && (
-            <div className="card">
-              <div className="card-title">Generated P4 Code</div>
-              <pre className="code-viewer">{state.p4_code}</pre>
+            <div className={cardCls}>
+              <div className={cardTitle}>Generated P4 Code</div>
+              <pre className={codeViewer}>{state.p4_code}</pre>
             </div>
           )}
 
           {/* Logs */}
           {state?.logs?.length > 0 && (
-            <div className="card">
-              <div className="card-title">Pipeline Logs</div>
+            <div className={cardCls}>
+              <div className={cardTitle}>Pipeline Logs</div>
               <LogPanel logs={state.logs} />
             </div>
           )}
@@ -288,17 +423,17 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
 
       {/* JSON panels */}
       {(state?.expected_behavior || state?.actual_behavior) && (
-        <div className="grid-2" style={{ marginTop: 8 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           {state.expected_behavior && (
-            <div className="card">
-              <div className="card-title">Expected Behavior (VRF A.5)</div>
-              <pre className="json-viewer">{pretty(state.expected_behavior)}</pre>
+            <div className={cardCls}>
+              <div className={cardTitle}>Expected Behavior (VRF A.5)</div>
+              <pre className={jsonViewer}>{pretty(state.expected_behavior)}</pre>
             </div>
           )}
           {state.actual_behavior && (
-            <div className="card">
-              <div className="card-title">Actual Behavior (VRF A.5)</div>
-              <pre className="json-viewer">{pretty(state.actual_behavior)}</pre>
+            <div className={cardCls}>
+              <div className={cardTitle}>Actual Behavior (VRF A.5)</div>
+              <pre className={jsonViewer}>{pretty(state.actual_behavior)}</pre>
             </div>
           )}
         </div>
@@ -314,8 +449,8 @@ function CompileTab({ compileState, setCompileState }) {
   const result = compileState.result
   const [loading, setLoading] = useState(false)
 
-  const setCode = (v) => setCompileState(prev => ({ ...prev, code: v }))
-  const setResult = (v) => setCompileState(prev => ({ ...prev, result: v }))
+  const setCode = v => setCompileState(prev => ({ ...prev, code: v }))
+  const setResult = v => setCompileState(prev => ({ ...prev, result: v }))
 
   const compile = async () => {
     setLoading(true)
@@ -334,35 +469,46 @@ function CompileTab({ compileState, setCompileState }) {
 
   return (
     <div>
-      <div className="card">
-        <div className="card-title">VRF A — P4 Compilation</div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+      <div className={cardCls}>
+        <div className={cardTitle}>VRF A — P4 Compilation</div>
+        <p className="text-[0.82rem] text-muted mb-3">
           Paste P4-16 code below to clean it up and compile via Docker p4c.
         </p>
-        <div className="form-group">
-          <label>P4 Source Code</label>
-          <textarea className="tall" value={code} onChange={e => setCode(e.target.value)} placeholder="#include <core.p4>..." />
+        <div className="mb-4">
+          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">P4 Source Code</label>
+          <textarea
+            className={tallTextareaCls}
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            placeholder="#include <core.p4>..."
+          />
         </div>
-        <button className="btn btn-primary" onClick={compile} disabled={loading || !code}>
-          {loading ? <><span className="spinner" /> Compiling...</> : 'Compile'}
+        <button className={btnPrimary} onClick={compile} disabled={loading || !code}>
+          {loading ? (
+            <>
+              <span className={spinnerCls} /> Compiling...
+            </>
+          ) : (
+            'Compile'
+          )}
         </button>
       </div>
 
       {result && (
-        <div className="grid-2">
-          <div className="card">
-            <div className="card-title">Result</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={cardCls}>
+            <div className={cardTitle}>Result</div>
             {result.success ? (
-              <span className="badge badge-success">Compilation Successful</span>
+              <span className={badgeSuccess}>Compilation Successful</span>
             ) : (
-              <span className="badge badge-error">Compilation Failed</span>
+              <span className={badgeError}>Compilation Failed</span>
             )}
-            {result.errors && <pre className="json-viewer" style={{ marginTop: 12 }}>{result.errors}</pre>}
+            {result.errors && <pre className={`${jsonViewer} mt-3`}>{result.errors}</pre>}
           </div>
           {result.cleaned_code && (
-            <div className="card">
-              <div className="card-title">Cleaned P4 Code</div>
-              <pre className="code-viewer">{result.cleaned_code}</pre>
+            <div className={cardCls}>
+              <div className={cardTitle}>Cleaned P4 Code</div>
+              <pre className={codeViewer}>{result.cleaned_code}</pre>
             </div>
           )}
         </div>
@@ -374,17 +520,10 @@ function CompileTab({ compileState, setCompileState }) {
 // ─── Tab: VRF A.5 (Intent) ───────────────────────────────────────────────
 
 function IntentTab({ intentState, setIntentState }) {
-  const { intent, expectedJson, actualJson, p4Code, parseResult, extractResult, compareResult, validateResult } = intentState
+  const { intent, expectedJson, actualJson, p4Code, parseResult, extractResult, compareResult, validateResult } =
+    intentState
 
   const set = (key, val) => setIntentState(prev => ({ ...prev, [key]: val }))
-  const setIntent = (v) => set('intent', v)
-  const setExpectedJson = (v) => set('expectedJson', v)
-  const setActualJson = (v) => set('actualJson', v)
-  const setP4Code = (v) => set('p4Code', v)
-  const setParseResult = (v) => set('parseResult', v)
-  const setExtractResult = (v) => set('extractResult', v)
-  const setCompareResult = (v) => set('compareResult', v)
-  const setValidateResult = (v) => set('validateResult', v)
 
   const parseIntent = async () => {
     const res = await fetch(`${API}/api/parse-intent`, {
@@ -393,8 +532,8 @@ function IntentTab({ intentState, setIntentState }) {
       body: JSON.stringify({ intent }),
     })
     const data = await res.json()
-    setParseResult(data.expected_behavior)
-    setExpectedJson(pretty(data.expected_behavior))
+    set('parseResult', data.expected_behavior)
+    set('expectedJson', pretty(data.expected_behavior))
   }
 
   const extractBehavior = async () => {
@@ -404,118 +543,179 @@ function IntentTab({ intentState, setIntentState }) {
       body: JSON.stringify({ p4_code: p4Code }),
     })
     const data = await res.json()
-    setExtractResult(data.actual_behavior)
-    setActualJson(pretty(data.actual_behavior))
+    set('extractResult', data.actual_behavior)
+    set('actualJson', pretty(data.actual_behavior))
   }
 
   const compare = async () => {
     let exp, act
-    try { exp = JSON.parse(expectedJson) } catch { alert('Invalid expected JSON'); return }
-    try { act = JSON.parse(actualJson) } catch { alert('Invalid actual JSON'); return }
+    try {
+      exp = JSON.parse(expectedJson)
+    } catch {
+      alert('Invalid expected JSON')
+      return
+    }
+    try {
+      act = JSON.parse(actualJson)
+    } catch {
+      alert('Invalid actual JSON')
+      return
+    }
     const res = await fetch(`${API}/api/compare`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ expected_behavior: exp, actual_behavior: act }),
     })
-    setCompareResult(await res.json())
+    set('compareResult', await res.json())
   }
 
   const validateVrfA5 = async () => {
     let exp = null
-    try { exp = expectedJson ? JSON.parse(expectedJson) : null } catch { /* ignore */ }
+    try {
+      exp = expectedJson ? JSON.parse(expectedJson) : null
+    } catch {
+      /* ignore */
+    }
     const res = await fetch(`${API}/api/validate-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ p4_code: p4Code, expected_behavior: exp }),
     })
-    setValidateResult(await res.json())
+    set('validateResult', await res.json())
   }
 
   return (
     <div>
       {/* Intent → Expected */}
-      <div className="card">
-        <div className="card-title">Step 1: Parse Intent &rarr; Expected Behavior</div>
-        <div className="form-group">
-          <label>Network Intent</label>
-          <textarea value={intent} onChange={e => setIntent(e.target.value)} placeholder="e.g. Implement a basic Ethernet switch with MAC learning" rows={2} />
+      <div className={cardCls}>
+        <div className={cardTitle}>Step 1: Parse Intent &rarr; Expected Behavior</div>
+        <div className="mb-4">
+          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">Network Intent</label>
+          <textarea
+            className={textareaCls}
+            value={intent}
+            onChange={e => set('intent', e.target.value)}
+            placeholder="e.g. Implement a basic Ethernet switch with MAC learning"
+            rows={2}
+          />
         </div>
-        <button className="btn btn-primary btn-sm" onClick={parseIntent} disabled={!intent}>Parse Intent</button>
-        {parseResult && (
-          <pre className="json-viewer" style={{ marginTop: 12 }}>{pretty(parseResult)}</pre>
-        )}
+        <button className={btnPrimarySm} onClick={parseIntent} disabled={!intent}>
+          Parse Intent
+        </button>
+        {parseResult && <pre className={`${jsonViewer} mt-3`}>{pretty(parseResult)}</pre>}
       </div>
 
       {/* P4 Code → Actual */}
-      <div className="card">
-        <div className="card-title">Step 2: Extract Behavior from P4 Code</div>
-        <div className="form-group">
-          <label>P4 Source Code</label>
-          <textarea className="tall" value={p4Code} onChange={e => setP4Code(e.target.value)} placeholder="#include <core.p4>..." />
+      <div className={cardCls}>
+        <div className={cardTitle}>Step 2: Extract Behavior from P4 Code</div>
+        <div className="mb-4">
+          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">P4 Source Code</label>
+          <textarea
+            className={tallTextareaCls}
+            value={p4Code}
+            onChange={e => set('p4Code', e.target.value)}
+            placeholder="#include <core.p4>..."
+          />
         </div>
-        <button className="btn btn-primary btn-sm" onClick={extractBehavior} disabled={!p4Code}>Extract Behavior</button>
-        {extractResult && (
-          <pre className="json-viewer" style={{ marginTop: 12 }}>{pretty(extractResult)}</pre>
-        )}
+        <button className={btnPrimarySm} onClick={extractBehavior} disabled={!p4Code}>
+          Extract Behavior
+        </button>
+        {extractResult && <pre className={`${jsonViewer} mt-3`}>{pretty(extractResult)}</pre>}
       </div>
 
       {/* Compare */}
-      <div className="card">
-        <div className="card-title">Step 3: Compare Expected vs Actual</div>
-        <div className="grid-2">
-          <div className="form-group">
-            <label>Expected Behavior JSON</label>
-            <textarea className="tall" value={expectedJson} onChange={e => setExpectedJson(e.target.value)} placeholder='{"required_behaviors": [...], ...}' />
+      <div className={cardCls}>
+        <div className={cardTitle}>Step 3: Compare Expected vs Actual</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4">
+            <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+              Expected Behavior JSON
+            </label>
+            <textarea
+              className={tallTextareaCls}
+              value={expectedJson}
+              onChange={e => set('expectedJson', e.target.value)}
+              placeholder='{"required_behaviors": [...], ...}'
+            />
           </div>
-          <div className="form-group">
-            <label>Actual Behavior JSON</label>
-            <textarea className="tall" value={actualJson} onChange={e => setActualJson(e.target.value)} placeholder='{"detected_behaviors": [...], ...}' />
+          <div className="mb-4">
+            <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
+              Actual Behavior JSON
+            </label>
+            <textarea
+              className={tallTextareaCls}
+              value={actualJson}
+              onChange={e => set('actualJson', e.target.value)}
+              placeholder='{"detected_behaviors": [...], ...}'
+            />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-primary btn-sm" onClick={compare} disabled={!expectedJson || !actualJson}>Compare JSONs</button>
-          <button className="btn btn-secondary btn-sm" onClick={validateVrfA5} disabled={!p4Code}>Run Full VRF A.5</button>
+        <div className="flex gap-2.5">
+          <button className={btnPrimarySm} onClick={compare} disabled={!expectedJson || !actualJson}>
+            Compare JSONs
+          </button>
+          <button className={btnSecondary} onClick={validateVrfA5} disabled={!p4Code}>
+            Run Full VRF A.5
+          </button>
         </div>
 
         {compareResult && (
-          <div style={{ marginTop: 16 }}>
+          <div className="mt-4">
             <ScoreBar label="Overall Match" value={compareResult.match_score} />
             {compareResult.detailed_scores && (
               <>
-                <ScoreBar label="Required Behaviors" value={compareResult.detailed_scores.required_behaviors || 0} />
+                <ScoreBar
+                  label="Required Behaviors"
+                  value={compareResult.detailed_scores.required_behaviors || 0}
+                />
                 <ScoreBar label="Headers" value={compareResult.detailed_scores.headers || 0} />
-                <ScoreBar label="Control Blocks" value={compareResult.detailed_scores.control_blocks || 0} />
-                <ScoreBar label="Prohibited Check" value={compareResult.detailed_scores.prohibited_check || 0} />
+                <ScoreBar
+                  label="Control Blocks"
+                  value={compareResult.detailed_scores.control_blocks || 0}
+                />
+                <ScoreBar
+                  label="Prohibited Check"
+                  value={compareResult.detailed_scores.prohibited_check || 0}
+                />
               </>
             )}
             {compareResult.feedback && (
-              <pre className="json-viewer" style={{ marginTop: 10 }}>{compareResult.feedback}</pre>
+              <pre className={`${jsonViewer} mt-2.5`}>{compareResult.feedback}</pre>
             )}
           </div>
         )}
 
         {validateResult && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ marginBottom: 8 }}>
+          <div className="mt-4">
+            <div className="mb-2">
               {validateResult.passed ? (
-                <span className="badge badge-success">VRF A.5 Passed</span>
+                <span className={badgeSuccess}>VRF A.5 Passed</span>
               ) : (
-                <span className="badge badge-error">VRF A.5 Failed</span>
+                <span className={badgeError}>VRF A.5 Failed</span>
               )}
             </div>
             <ScoreBar label="Overall Match" value={validateResult.match_score} />
             {validateResult.detailed_scores && (
               <>
-                <ScoreBar label="Required Behaviors" value={validateResult.detailed_scores.required_behaviors || 0} />
+                <ScoreBar
+                  label="Required Behaviors"
+                  value={validateResult.detailed_scores.required_behaviors || 0}
+                />
                 <ScoreBar label="Headers" value={validateResult.detailed_scores.headers || 0} />
-                <ScoreBar label="Control Blocks" value={validateResult.detailed_scores.control_blocks || 0} />
-                <ScoreBar label="Prohibited Check" value={validateResult.detailed_scores.prohibited_check || 0} />
+                <ScoreBar
+                  label="Control Blocks"
+                  value={validateResult.detailed_scores.control_blocks || 0}
+                />
+                <ScoreBar
+                  label="Prohibited Check"
+                  value={validateResult.detailed_scores.prohibited_check || 0}
+                />
               </>
             )}
             {validateResult.actual_behavior && (
-              <div style={{ marginTop: 12 }}>
-                <div className="card-title">Extracted Actual Behavior</div>
-                <pre className="json-viewer">{pretty(validateResult.actual_behavior)}</pre>
+              <div className="mt-3">
+                <div className={cardTitle}>Extracted Actual Behavior</div>
+                <pre className={jsonViewer}>{pretty(validateResult.actual_behavior)}</pre>
               </div>
             )}
           </div>
@@ -538,19 +738,32 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
     try {
       const r = await fetch(`${API}/api/vrf-b/status`)
       set('poolStatus', await r.json())
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
-  useEffect(() => { refreshPool() }, [])
+  useEffect(() => {
+    refreshPool()
+  }, [])
 
   const startPool = async () => {
     setPoolLoading(true)
     try {
-      const r = await fetch(`${API}/api/vrf-b/start-pool`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const r = await fetch(`${API}/api/vrf-b/start-pool`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
       const data = await r.json()
-      if (!r.ok) { alert(data.error || 'Failed to start pool'); return }
+      if (!r.ok) {
+        alert(data.error || 'Failed to start pool')
+        return
+      }
       set('poolStatus', data)
-    } finally { setPoolLoading(false) }
+    } finally {
+      setPoolLoading(false)
+    }
   }
 
   const stopPool = async () => {
@@ -558,7 +771,9 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
     try {
       const r = await fetch(`${API}/api/vrf-b/stop-pool`, { method: 'POST' })
       set('poolStatus', await r.json())
-    } finally { setPoolLoading(false) }
+    } finally {
+      setPoolLoading(false)
+    }
   }
 
   const runTest = async () => {
@@ -586,99 +801,132 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
   return (
     <div>
       {/* Pool Management */}
-      <div className="card">
-        <div className="card-title">Container Pool</div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-          VRF B runs <strong>p4testgen + PTF</strong> inside privileged Docker containers (image: <code style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>p4_test_suite</code>).
-          Start the pool before running tests. The pool is also used by the full pipeline.
+      <div className={cardCls}>
+        <div className={cardTitle}>Container Pool</div>
+        <p className="text-[0.82rem] text-muted mb-3">
+          VRF B runs <strong>p4testgen + PTF</strong> inside privileged Docker containers (image:{' '}
+          <code className="font-mono bg-surface px-1.5 py-0.5 rounded">p4_test_suite</code>). Start
+          the pool before running tests. The pool is also used by the full pipeline.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <span className={`badge ${poolRunning ? 'badge-success' : 'badge-error'}`}>
+        <div className="flex items-center gap-3 mb-4">
+          <span className={poolRunning ? badgeSuccess : badgeError}>
             {poolRunning ? 'Running' : 'Stopped'}
           </span>
           {poolRunning && (
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            <span className="text-[0.82rem] text-muted">
               {poolAvail} / {poolTotal} workers available
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="flex gap-2.5">
           {!poolRunning ? (
-            <button className="btn btn-primary btn-sm" onClick={startPool} disabled={poolLoading}>
-              {poolLoading ? <><span className="spinner" /> Starting...</> : 'Start Pool'}
+            <button className={btnPrimarySm} onClick={startPool} disabled={poolLoading}>
+              {poolLoading ? (
+                <>
+                  <span className={spinnerCls} /> Starting...
+                </>
+              ) : (
+                'Start Pool'
+              )}
             </button>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={stopPool} disabled={poolLoading}>
-              {poolLoading ? <><span className="spinner" /> Stopping...</> : 'Stop Pool'}
+            <button className={btnSecondary} onClick={stopPool} disabled={poolLoading}>
+              {poolLoading ? (
+                <>
+                  <span className={spinnerCls} /> Stopping...
+                </>
+              ) : (
+                'Stop Pool'
+              )}
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={refreshPool}>Refresh</button>
+          <button className={btnSecondary} onClick={refreshPool}>
+            Refresh
+          </button>
         </div>
 
         {!poolRunning && (
-          <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.7 }}>
-              <strong>First-time setup:</strong> Build the Docker image from <code style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', padding: '2px 4px', borderRadius: 4 }}>code/server-validation/p4testgen-server/</code>:
+          <div className="mt-3 p-3 bg-input rounded-lg border border-edge">
+            <p className="text-muted text-[0.78rem] leading-relaxed">
+              <strong>First-time setup:</strong> Build the Docker image from{' '}
+              <code className="font-mono bg-surface px-1 py-0.5 rounded">
+                code/server-validation/p4testgen-server/
+              </code>
+              :
             </p>
-            <pre className="json-viewer" style={{ marginTop: 6, maxHeight: 60, fontSize: '0.76rem' }}>docker buildx build --tag p4_test_suite . --load</pre>
+            <pre className={`${jsonViewer} mt-1.5 max-h-[60px] text-[0.76rem]`}>
+              docker buildx build --tag p4_test_suite . --load
+            </pre>
           </div>
         )}
       </div>
 
       {/* Run Test */}
-      <div className="card">
-        <div className="card-title">Run Functional Test</div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-          Submit P4-16 code. The worker runs p4testgen (generates up to 10 PTF test cases), compiles with p4c, starts simple_switch_grpc, and executes PTF tests.
+      <div className={cardCls}>
+        <div className={cardTitle}>Run Functional Test</div>
+        <p className="text-[0.82rem] text-muted mb-3">
+          Submit P4-16 code. The worker runs p4testgen (generates up to 10 PTF test cases), compiles
+          with p4c, starts simple_switch_grpc, and executes PTF tests.
         </p>
-        <div className="form-group">
-          <label>P4 Source Code</label>
-          <textarea className="tall" value={p4Code} onChange={e => set('p4Code', e.target.value)} placeholder="#include <core.p4>..." />
+        <div className="mb-4">
+          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">P4 Source Code</label>
+          <textarea
+            className={tallTextareaCls}
+            value={p4Code}
+            onChange={e => set('p4Code', e.target.value)}
+            placeholder="#include <core.p4>..."
+          />
         </div>
-        <button className="btn btn-primary" onClick={runTest} disabled={loading || !p4Code || !poolRunning}>
-          {loading ? <><span className="spinner" /> Running Tests...</> : 'Run VRF B Tests'}
+        <button className={btnPrimary} onClick={runTest} disabled={loading || !p4Code || !poolRunning}>
+          {loading ? (
+            <>
+              <span className={spinnerCls} /> Running Tests...
+            </>
+          ) : (
+            'Run VRF B Tests'
+          )}
         </button>
         {!poolRunning && p4Code && (
-          <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--yellow)' }}>Start the container pool first</span>
+          <span className="ml-3 text-[0.78rem] text-warning">Start the container pool first</span>
         )}
       </div>
 
       {/* Results */}
       {testResult && (
-        <div className="card">
-          <div className="card-title">Test Results</div>
-          <div style={{ marginBottom: 12 }}>
+        <div className={cardCls}>
+          <div className={cardTitle}>Test Results</div>
+          <div className="mb-3">
             {testResult.success ? (
-              <span className="badge badge-success">All Tests Passed</span>
+              <span className={badgeSuccess}>All Tests Passed</span>
             ) : (
-              <span className="badge badge-error">{testResult.error ? 'Error' : 'Tests Failed'}</span>
+              <span className={badgeError}>{testResult.error ? 'Error' : 'Tests Failed'}</span>
             )}
             {testResult.returncode != null && (
-              <span style={{ marginLeft: 10, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <span className="ml-2.5 text-[0.78rem] text-muted">
                 Exit code: {testResult.returncode}
               </span>
             )}
           </div>
 
           {testResult.error && (
-            <div style={{ padding: 10, background: 'var(--red-bg)', borderRadius: 8, marginBottom: 12, fontSize: '0.82rem', color: 'var(--red)' }}>
+            <div className="p-2.5 bg-danger/12 rounded-lg mb-3 text-[0.82rem] text-danger">
               {testResult.error}
             </div>
           )}
 
           {testResult.stdout && (
-            <div style={{ marginBottom: 12 }}>
-              <div className="card-title">stdout</div>
-              <pre className="code-viewer" style={{ maxHeight: 300 }}>{testResult.stdout}</pre>
+            <div className="mb-3">
+              <div className={cardTitle}>stdout</div>
+              <pre className={`${codeViewer} max-h-[300px]`}>{testResult.stdout}</pre>
             </div>
           )}
 
           {testResult.stderr && (
             <div>
-              <div className="card-title">stderr</div>
-              <pre className="code-viewer" style={{ maxHeight: 200, color: 'var(--yellow)' }}>{testResult.stderr}</pre>
+              <div className={cardTitle}>stderr</div>
+              <pre className={`${codeViewer} max-h-[200px] text-warning`}>{testResult.stderr}</pre>
             </div>
           )}
         </div>
@@ -691,49 +939,49 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
 
 function SchemasTab() {
   const expectedSchema = {
-    intent_id: "intent_abc123",
-    timestamp: "2026-02-11T12:00:00Z",
-    intent_type: "inferred",
-    raw_intent: "Create a P4 program for basic Ethernet switch with MAC learning",
+    intent_id: 'intent_abc123',
+    timestamp: '2026-02-11T12:00:00Z',
+    intent_type: 'inferred',
+    raw_intent: 'Create a P4 program for basic Ethernet switch with MAC learning',
     required_behaviors: [
       {
-        behavior_id: "mac_learning",
-        description: "Inferred from intent: mac learning",
-        components: { table_required: true, table_type: "exact", key_fields: [], action_types: [] }
+        behavior_id: 'mac_learning',
+        description: 'Inferred from intent: mac learning',
+        components: { table_required: true, table_type: 'exact', key_fields: [], action_types: [] },
       },
       {
-        behavior_id: "forwarding",
-        description: "Inferred from intent: forwarding",
-        components: { table_required: true, table_type: "exact", key_fields: [], action_types: [] }
-      }
+        behavior_id: 'forwarding',
+        description: 'Inferred from intent: forwarding',
+        components: { table_required: true, table_type: 'exact', key_fields: [], action_types: [] },
+      },
     ],
-    headers_required: ["ethernet"],
+    headers_required: ['ethernet'],
     control_blocks: {
       ingress: { required: true, must_contain: [] },
-      egress: { required: false }
+      egress: { required: false },
     },
     prohibited_behaviors: [],
-    performance_constraints: {}
+    performance_constraints: {},
   }
 
   const actualSchema = {
-    code_id: "code_abc123",
-    timestamp: "2026-02-11T12:00:05Z",
+    code_id: 'code_abc123',
+    timestamp: '2026-02-11T12:00:05Z',
     detected_behaviors: [
       {
-        behavior_id: "mac_learning_impl",
+        behavior_id: 'mac_learning_impl',
         evidence: {
-          table_name: "mac_learn_table",
-          table_type: "exact",
-          key_fields: ["hdr.ethernet.srcAddr"],
-          actions: ["learn_mac", "NoAction"],
-          default_action: "NoAction"
-        }
-      }
+          table_name: 'mac_learn_table',
+          table_type: 'exact',
+          key_fields: ['hdr.ethernet.srcAddr'],
+          actions: ['learn_mac', 'NoAction'],
+          default_action: 'NoAction',
+        },
+      },
     ],
-    headers_defined: ["ethernet_t"],
-    control_blocks: { ingress: ["MyIngress"], egress: ["MyEgress"] },
-    suspicious_patterns: []
+    headers_defined: ['ethernet_t'],
+    control_blocks: { ingress: ['MyIngress'], egress: ['MyEgress'] },
+    suspicious_patterns: [],
   }
 
   const comparisonSchema = {
@@ -742,41 +990,43 @@ function SchemasTab() {
       required_behaviors: 0.5,
       headers: 1.0,
       control_blocks: 1.0,
-      prohibited_check: 1.0
+      prohibited_check: 1.0,
     },
     weights: {
       required_behaviors: 0.5,
       headers: 0.15,
       control_blocks: 0.15,
-      prohibited_check: 0.2
+      prohibited_check: 0.2,
     },
-    thresholds: { pass: 0.85, partial: 0.60, fail: "< 0.60" }
+    thresholds: { pass: 0.85, partial: 0.6, fail: '< 0.60' },
   }
 
   return (
     <div>
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-title">Expected Behavior JSON (VRF A.5 Input)</div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-            Generated from user intent via <code>vrf_a5_intent_parser.py</code>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={cardCls}>
+          <div className={cardTitle}>Expected Behavior JSON (VRF A.5 Input)</div>
+          <p className="text-[0.78rem] text-muted mb-2.5">
+            Generated from user intent via <code className="font-mono">vrf_a5_intent_parser.py</code>
           </p>
-          <pre className="json-viewer">{pretty(expectedSchema)}</pre>
+          <pre className={jsonViewer}>{pretty(expectedSchema)}</pre>
         </div>
-        <div className="card">
-          <div className="card-title">Actual Behavior JSON (VRF A.5 Output)</div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-            Extracted from P4 code via <code>vrf_a5_behavior_extractor.py</code>
+        <div className={cardCls}>
+          <div className={cardTitle}>Actual Behavior JSON (VRF A.5 Output)</div>
+          <p className="text-[0.78rem] text-muted mb-2.5">
+            Extracted from P4 code via{' '}
+            <code className="font-mono">vrf_a5_behavior_extractor.py</code>
           </p>
-          <pre className="json-viewer">{pretty(actualSchema)}</pre>
+          <pre className={jsonViewer}>{pretty(actualSchema)}</pre>
         </div>
       </div>
-      <div className="card">
-        <div className="card-title">Comparison / Scoring Schema</div>
-        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-          Computed by <code>vrf_a5_semantic_comparator.py</code>. Weighted score determines pass/partial/fail.
+      <div className={cardCls}>
+        <div className={cardTitle}>Comparison / Scoring Schema</div>
+        <p className="text-[0.78rem] text-muted mb-2.5">
+          Computed by <code className="font-mono">vrf_a5_semantic_comparator.py</code>. Weighted score
+          determines pass/partial/fail.
         </p>
-        <pre className="json-viewer">{pretty(comparisonSchema)}</pre>
+        <pre className={jsonViewer}>{pretty(comparisonSchema)}</pre>
       </div>
     </div>
   )
@@ -790,10 +1040,13 @@ function LogPanel({ logs }) {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
   }, [logs])
   return (
-    <div className="log-panel" ref={ref}>
+    <div
+      className="bg-input border border-edge rounded-lg p-3 max-h-[300px] overflow-y-auto font-mono text-[0.76rem] leading-relaxed"
+      ref={ref}
+    >
       {logs.map((l, i) => (
-        <div key={i} className="log-entry">
-          <span className="log-time">{new Date(l.time).toLocaleTimeString()}</span>
+        <div key={i} className="py-0.5 text-muted">
+          <span className="text-edge mr-2">{new Date(l.time).toLocaleTimeString()}</span>
           {l.message}
         </div>
       ))}
@@ -842,22 +1095,50 @@ export default function App() {
     testResult: null,
   })
 
+  const tabs = [
+    { id: 'pipeline', label: 'Run Pipeline' },
+    { id: 'compile', label: 'VRF A (Compile)' },
+    { id: 'intent', label: 'VRF A.5 (Intent)' },
+    { id: 'functional', label: 'VRF B (Functional)' },
+    { id: 'schemas', label: 'JSON Schemas' },
+  ]
+
   return (
-    <div className="app">
-      <header>
-        <h1><span>PINC</span> — P4 Intent-driven Network Compiler</h1>
-        <p>Intent &rarr; Expected JSON &rarr; LLM P4 Generation &rarr; VRF A (Compile) &rarr; VRF A.5 (Intent) &rarr; VRF B (Functional)</p>
+    <div className="max-w-[1280px] mx-auto px-5 pt-6 pb-[60px]">
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">
+          <span className="text-accent">PINC</span> — P4 Intent-driven Network Compiler
+        </h1>
+        <p className="text-muted text-[0.92rem] mt-1">
+          Intent &rarr; Expected JSON &rarr; LLM P4 Generation &rarr; VRF A (Compile) &rarr; VRF A.5
+          (Intent) &rarr; VRF B (Functional)
+        </p>
       </header>
 
-      <div className="tabs">
-        <button className={`tab ${tab === 'pipeline' ? 'active' : ''}`} onClick={() => setTab('pipeline')}>Run Pipeline</button>
-        <button className={`tab ${tab === 'compile' ? 'active' : ''}`} onClick={() => setTab('compile')}>VRF A (Compile)</button>
-        <button className={`tab ${tab === 'intent' ? 'active' : ''}`} onClick={() => setTab('intent')}>VRF A.5 (Intent)</button>
-        <button className={`tab ${tab === 'functional' ? 'active' : ''}`} onClick={() => setTab('functional')}>VRF B (Functional)</button>
-        <button className={`tab ${tab === 'schemas' ? 'active' : ''}`} onClick={() => setTab('schemas')}>JSON Schemas</button>
+      <div className="flex gap-1 mb-5 border-b border-edge">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            className={`px-[18px] py-2.5 text-[0.85rem] font-medium bg-transparent border-none border-b-2 cursor-pointer transition-all duration-200 ${
+              tab === t.id
+                ? 'text-accent border-b-accent'
+                : 'text-muted border-b-transparent hover:text-body'
+            }`}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {tab === 'pipeline' && <RunPipelineTab form={pipelineForm} setForm={setPipelineForm} pipelineState={pipelineState} setPipelineState={setPipelineState} />}
+      {tab === 'pipeline' && (
+        <RunPipelineTab
+          form={pipelineForm}
+          setForm={setPipelineForm}
+          pipelineState={pipelineState}
+          setPipelineState={setPipelineState}
+        />
+      )}
       {tab === 'compile' && <CompileTab compileState={compileState} setCompileState={setCompileState} />}
       {tab === 'intent' && <IntentTab intentState={intentState} setIntentState={setIntentState} />}
       {tab === 'functional' && <FunctionalTab vrfbState={vrfbState} setVrfbState={setVrfbState} />}

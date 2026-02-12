@@ -29,7 +29,10 @@ from datetime import datetime, timezone
 from queue import Queue, Empty
 from typing import Any, Dict, Optional
 
-import httpx
+import socket
+import urllib.error
+import urllib.request
+
 from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -434,6 +437,32 @@ def api_vrfb_stop_pool():
     return {"message": "Pool stopped", **vrf_b_state}
 
 
+def _json_post(url: str, payload: dict, timeout: float) -> tuple[dict, int]:
+    """POST JSON to *url* and return ``(response_dict, http_status)``.
+
+    Uses only the stdlib so there is no external dependency (httpx / requests).
+    """
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+            return body, resp.status
+    except urllib.error.HTTPError as exc:
+        try:
+            body = json.loads(exc.read().decode("utf-8"))
+        except Exception:
+            body = {"error": exc.reason}
+        return body, exc.code
+    except socket.timeout:
+        raise TimeoutError(f"Request timed out ({timeout}s)")
+
+
 def _dispatch_to_worker(p4_code: str) -> tuple[dict, int]:
     """Send P4 code to a VRF B worker container. Returns (result_dict, http_status)."""
     if not vrf_b_state["running"] or vrf_b_pool.empty():
@@ -452,16 +481,15 @@ def _dispatch_to_worker(p4_code: str) -> tuple[dict, int]:
     try:
         timeout = VRF_B_CONFIG["timeout"]
         url = f"http://localhost:{port}/validate"
-        resp = httpx.post(url, json={"code": p4_code}, timeout=timeout)
-        result = resp.json()
+        result, status = _json_post(url, {"code": p4_code}, timeout)
         return {
             "success": result.get("success", False),
             "stdout": result.get("stdout", ""),
             "stderr": result.get("stderr", ""),
             "returncode": result.get("returncode"),
             "error": result.get("error"),
-        }, resp.status_code
-    except httpx.TimeoutException:
+        }, status
+    except TimeoutError:
         return {
             "success": False,
             "error": f"VRF B validation timed out ({timeout}s)",
@@ -508,8 +536,7 @@ def _run_vrf_b(p4_code: str) -> dict:
     try:
         timeout = VRF_B_CONFIG["timeout"]
         url = f"http://localhost:{port}/validate"
-        resp = httpx.post(url, json={"code": p4_code}, timeout=timeout)
-        data = resp.json()
+        data, _status = _json_post(url, {"code": p4_code}, timeout)
         return {
             "success": data.get("success", False),
             "skipped": False,
@@ -518,7 +545,7 @@ def _run_vrf_b(p4_code: str) -> dict:
             "returncode": data.get("returncode"),
             "error": data.get("error"),
         }
-    except httpx.TimeoutException:
+    except TimeoutError:
         return {"success": False, "skipped": False, "error": f"VRF B timed out ({timeout}s)"}
     except Exception as e:
         return {"success": False, "skipped": False, "error": str(e)}
