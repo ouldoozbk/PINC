@@ -8,8 +8,8 @@ from __future__ import annotations
 import json
 from typing import Optional, Tuple
 
-from behavior_extractor import extract_behavior_from_code, save_actual_behavior
-from semantic_comparator import (
+from vrf_a5_behavior_extractor import extract_behavior_from_code, save_actual_behavior
+from vrf_a5_semantic_comparator import (
     compute_intent_match_score,
     format_feedback_for_llm,
     generate_intent_mismatch_feedback,

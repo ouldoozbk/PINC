@@ -1,12 +1,32 @@
-import os  # The os module in Python provides a way to interact with the operating system.
+"""
+PINC Pipeline — Main orchestrator for intent-driven P4 code generation.
+
+Flow:
+  User Intent
+      ↓
+  Intent → Expected JSON  (VRF A.5 pre-check)
+      ↓
+  LLM generates P4 code
+      ↓
+  VRF A  — Compilation check     (vrf_a_compiler / vrf_a_compile.sh)
+      ↓
+  VRF A.5 — Intent validation    (vrf_a5_validator)
+      ↓
+  VRF B  — Functional testing    (vrf_b_run_tests.sh)  [not yet wired]
+"""
+
+import os
 import re
 import glob
 import json
 import subprocess
 import time
 
-# VRF A.5: Intent validation (expected/actual behavior comparison)
-from intent_parser import generate_expected_behavior, save_expected_behavior
+# VRF A: Compilation
+from vrf_a_compiler import clean_p4_code, validate_p4_compilation, read_error_summary
+
+# VRF A.5: Intent validation
+from vrf_a5_intent_parser import generate_expected_behavior, save_expected_behavior
 from vrf_a5_validator import run_vrf_a5
 
 # Use Replicate if REPLICATE_API_TOKEN is set, otherwise OpenAI
@@ -15,13 +35,14 @@ if os.getenv('REPLICATE_API_TOKEN'):
 else:
     import openai  # The OpenAI API library for generating P4 code
 
+
+# Cleanup
 def cleanup_files():
     """Clean up all P4 and error-related files before starting."""
-    # Files to remove
     patterns = [
        "*.p4",
        "*.p4i",
-       "test.json",    # JSON configuration files
+       "test.json",
        "validation_status.txt",
        "error_summary.txt",
        "p4_validation_errors.txt",
@@ -30,7 +51,7 @@ def cleanup_files():
        "expected_behavior.json",
        "actual_behavior.json",
    ]
-    
+
     print("\nCleaning up previous files...")
     for pattern in patterns:
         for file in glob.glob(pattern):
@@ -41,22 +62,24 @@ def cleanup_files():
                 print(f"Error removing {file}: {e}")
     print("Cleanup complete.\n")
 
+
+# User input
 def get_user_intent():
-    #Get the networking intent from the user
+    """Get the networking intent from the user."""
     print("\nPlease provide your network intent here, please try to be as specific as possible (e.g., 'Create a P4 program for basic packet forwarding'):")
-    return input("> ").strip() #Getting the user's intent
+    return input("> ").strip()
+
 
 def get_yang_model():
-    """Get YANG model (schema) from file or user input (optional)"""
+    """Get YANG model (schema) from file or user input (optional)."""
     import shutil
-    # First, check if there's a YANG file in the current directory
     yang_files = glob.glob("*.yang")
-    
+
     if yang_files:
         print(f"\nFound YANG file(s): {', '.join(yang_files)}")
         print("Do you want to use the YANG file for configuration? (y/n):")
         choice = input("> ").strip().lower()
-        
+
         if choice in ['y', 'yes']:
             if len(yang_files) == 1:
                 yang_file = yang_files[0]
@@ -74,7 +97,6 @@ def get_yang_model():
                             print("Invalid selection. Please try again.")
                     except ValueError:
                         print("Please enter a valid number.")
-            # Validate the YANG file using pyang before proceeding
             try:
                 if not shutil.which("pyang"):
                     raise FileNotFoundError("pyang not found in PATH. Please install it with 'pip install pyang' or your package manager.")
@@ -91,7 +113,6 @@ def get_yang_model():
                 print(f"Error: {e}")
                 print("Exiting.")
                 exit(1)
-            # Instead of pyang -f tree, just read and display the raw YANG file content
             try:
                 with open(yang_file, 'r') as f:
                     yang_content = f.read()
@@ -110,11 +131,10 @@ def get_yang_model():
             except Exception as e:
                 print(f"Error reading YANG file {yang_file}: {e}")
                 print("Falling back to manual input...")
-    # If no YANG file or user does not want to use one, just print a message and return None
     print("\nNo YANG configuration file found or selected.")
     return None
 
-#getting the actual yang data/current configuration
+
 def get_yang_data(yang_model_file=None):
     """Get YANG data (JSON) from file if available."""
     json_files = glob.glob("*.json")
@@ -160,11 +180,10 @@ def get_yang_data(yang_model_file=None):
     return None
 
 
-# Making a function that uses the user's intent to create a detailed prompt for the LLM
+# LLM prompt construction
 def create_detailed_prompt(intent, yang_model=None, yang_data=None, error_feedback=None):
     base_prompt = f"""Generate P4-16 code that implements the following network intent: {intent}"""
 
-    # Add YANG model (schema)
     if yang_model:
         base_prompt += f"""
 
@@ -173,7 +192,6 @@ YANG Model (Schema):
 {yang_model}
 """
 
-    # Add YANG data (actual config)
     if yang_data:
         base_prompt += f"""
 
@@ -304,6 +322,7 @@ Please use this as a guide for style, structure, and how to map intent and confi
 
     return base_prompt
 
+
 SYSTEM_PROMPT = """You are a P4 programming expert. Your task is to generate P4 code.
 IMPORTANT RULES:
 1. Start your response with the P4 code directly
@@ -338,10 +357,10 @@ IMPORTANT RULES:
 11. Ensure all code follows P4-16 standards and best practices."""
 
 
+# LLM code generation
 def _generate_p4_code_replicate(prompt):
     """Generate P4 code using Replicate (e.g. Meta Llama 3). Set REPLICATE_API_TOKEN."""
     try:
-        # meta/meta-llama-3-8b-instruct supports system_prompt + prompt; output may stream
         output = replicate.run(
             "meta/meta-llama-3-8b-instruct",
             input={
@@ -351,7 +370,6 @@ def _generate_p4_code_replicate(prompt):
                 "max_tokens": 4000,
             },
         )
-        # Replicate text models can return an iterator (streaming); join to get full string
         if hasattr(output, "__iter__") and not isinstance(output, str):
             return "".join(str(chunk) for chunk in output)
         return str(output) if output is not None else None
@@ -388,161 +406,12 @@ def generate_p4_code(prompt):
     print("Error: Set either REPLICATE_API_TOKEN or OPENAI_API_KEY")
     return None
 
-def clean_p4_code(raw_code):
-    """Clean up the generated P4 code by removing markdown formatting and extra content."""
-    # Find the P4 code block
-    p4_block = re.search(r'```(?:P4|p4)?\n(.*?)```', raw_code, re.DOTALL)
-    if p4_block:
-        code = p4_block.group(1).strip()
-    else:
-        # If no code block found, try to find the first #include
-        code = raw_code.strip()
-        if '#include' in code:
-            code = code[code.find('#include'):]
-    
-    # Remove any text before the first #include
-    if '#include' in code:
-        code = code[code.find('#include'):]
-    
-    # Remove any "p4" or "P4" line at the start of the file
-    code = re.sub(r'^[pP]4\s*\n', '', code)
 
-    # P4-16 uses "const", not "constant" (P4-14). Fix common LLM mistake.
-    code = re.sub(r'\bconstant\b', 'const', code)
-
-    # P4-16 uses table_name.apply(), not apply_table(table_name) (P4-14).
-    code = re.sub(r'\bapply_table\s*\(\s*(\w+)\s*\)', r'\1.apply()', code)
-
-    # Fix common LLM mistake: using struct type name "metadata" instead of
-    # the parameter name "meta" inside control blocks.
-    # Pattern: metadata.<field> used as an lvalue/rvalue (not in struct definition).
-    # We only fix occurrences that look like assignments or expressions, not the
-    # "struct metadata { ... }" definition itself.
-    # Negative lookbehind for "struct " avoids mangling the struct definition line.
-    code = re.sub(r'(?<!struct )(?<!\w)metadata\.', 'meta.', code)
-
-    # Fix common LLM mistake: calling ControlName.apply() as if it were a table.
-    # In P4-16, .apply() is only valid on tables, never on control blocks.
-    # The V1Switch controls have known names — remove lines that call them with .apply().
-    v1_control_names = _extract_v1switch_control_names(code)
-    for ctrl_name in v1_control_names:
-        # Remove lines like "            MyIngress.apply();"
-        code = re.sub(
-            r'^\s*' + re.escape(ctrl_name) + r'\s*\.\s*apply\s*\(\s*\)\s*;\s*$',
-            '',
-            code,
-            flags=re.MULTILINE
-        )
-
-    # Remove extra control blocks not part of V1Switch (e.g. MyForwarding).
-    # V1Switch uses exactly 6 controls. Any control definition not in that list is dead code
-    # and may cause "unused" warnings or errors.
-    if v1_control_names:
-        code = _remove_unused_controls(code, v1_control_names)
-
-    # Remove any leading/trailing whitespace
-    code = code.strip()
-
-    return code
-
-
-def _extract_v1switch_control_names(code: str):
-    """Extract the control names used in the V1Switch(...) instantiation."""
-    m = re.search(r'V1Switch\s*\(([^;]+)\)\s*main\s*;', code, re.DOTALL)
-    if not m:
-        return set()
-    inner = m.group(1)
-    return set(re.findall(r'(\w+)\s*\(\s*\)', inner))
-
-
-def _remove_unused_controls(code: str, v1switch_names: set):
-    """Remove control block definitions that are not referenced in V1Switch."""
-    # Also keep parser/deparser (they appear in V1Switch too)
-    # Find all control definitions: control Name(...) { ... }
-    result = code
-    for m in list(re.finditer(r'control\s+(\w+)\s*\([^)]*\)\s*\{', code)):
-        name = m.group(1)
-        if name not in v1switch_names:
-            # Find the matching closing brace for this control block
-            start = m.start()
-            brace_start = code.index('{', m.start())
-            depth = 1
-            i = brace_start + 1
-            while i < len(code) and depth > 0:
-                if code[i] == '{':
-                    depth += 1
-                elif code[i] == '}':
-                    depth -= 1
-                i += 1
-            # Remove the entire control block (from 'control' to closing '}')
-            block = code[start:i]
-            result = result.replace(block, '', 1)
-    # Clean up any resulting double blank lines
-    result = re.sub(r'\n{3,}', '\n\n', result)
-    return result
-
-def validate_p4_code(p4_code, filename, attempt):
-    # Clean up the code before saving
-    cleaned_code = clean_p4_code(p4_code)
-    
-    # Save the code to a file
-    with open(filename, 'w') as f:
-        f.write(cleaned_code)
-    
-    # Run the validation script with attempt number
-    # Note: do NOT use shell=True with list args — it ignores extra elements on Unix.
-    subprocess.run(['./validate_p4.sh', str(attempt)])
-    
-    # Check validation status
-    try:
-        with open('validation_status.txt', 'r') as f:
-            status = f.read().strip()
-        
-        if status == "SUCCESS":
-            return True, None
-        
-        # If validation failed, read the error summary
-        with open('error_summary.txt', 'r') as f:
-            error_feedback = f.read()
-        return False, error_feedback
-    
-    except FileNotFoundError:
-        return False, "Validation process failed to create status file"
-
-def validate_p4_compilation(p4_code, filename="test.p4", attempt=1):
-    """Run compilation-only validation (VRF A). Returns (success, error_feedback_string)."""
-    cleaned = clean_p4_code(p4_code)
-    with open(filename, "w") as f:
-        f.write(cleaned)
-    subprocess.run(["./validate_p4.sh", str(attempt)])
-    try:
-        with open("validation_status.txt", "r") as f:
-            status = f.read().strip()
-        if status == "SUCCESS":
-            return True, None
-        with open("error_summary.txt", "r") as f:
-            return False, f.read()
-    except FileNotFoundError:
-        return False, "Validation process failed to create status file"
-
-
-def read_error_summary():
-    """Read the error summary file and return its contents."""
-    try:
-        with open("error_summary.txt", "r") as f:
-            content = f.read()
-            # Only return the last 3 attempts to keep the context size manageable
-            attempts = content.split("=== Attempt")
-            if len(attempts) > 4:  # Keep header + last 3 attempts
-                return "=== P4 Code Validation Error History ===\n" + "=== Attempt".join(attempts[-3:])
-            return content
-    except FileNotFoundError:
-        return "No error history available."
-
+# Main pipeline
 def main():
     # Clean up existing files
     cleanup_files()
-    
+
     # Check for at least one API key (Replicate or OpenAI)
     if not os.getenv("REPLICATE_API_TOKEN") and not os.getenv("OPENAI_API_KEY"):
         print("Error: No API token set.")
@@ -565,16 +434,14 @@ def main():
     yang_files = glob.glob("*.yang")
     if yang_files:
         yang_model = get_yang_model()
-        # Determine which file was selected
         if yang_model:
-            # Try to find the selected file by matching content
             for f in yang_files:
                 with open(f, 'r') as file:
                     if file.read() == yang_model:
                         yang_model_file = f
                         break
     yang_data = get_yang_data(yang_model_file)
-    
+
     # Maximum number of validation attempts
     max_attempts = 10
     attempt = 1
@@ -591,9 +458,6 @@ def main():
             print("\nGenerating P4 code according to your intent...")
         else:
             error_history = read_error_summary()
-            # Re-generate the full detailed prompt (with golden example and P4-16 rules)
-            # and append the error history so the LLM has both the structural guidance
-            # AND the specific errors to fix.
             error_section = f"""
 
 === PREVIOUS ATTEMPT THAT FAILED ===
@@ -670,5 +534,6 @@ Generate a COMPLETE, corrected P4-16 program that fixes ALL errors above. Start 
         print("\n❌ Failed to generate valid P4 code after", max_attempts, "attempts.")
         print("Please refine your intent or check the error feedback for more details.")
 
+
 if __name__ == "__main__":
-    main() 
+    main()
