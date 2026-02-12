@@ -6,11 +6,11 @@ PINC is a research project that uses LLMs to generate P4 (programmable data-plan
 
 | Part | Location | What it does |
 |------|----------|--------------|
-| **Intent → P4 wrapper** | `Initial Wrapper Implementation/` | CLI: you type a network intent → LLM generates P4 → Docker validates it. Easiest way to “run” something end-to-end. |
+| **Intent → P4 wrapper** | `backend/` | Flask API + React frontend: type a network intent → LLM generates P4 → VRF A (compile) → VRF A.5 (intent) → VRF B (functional). |
 | **Classifier (TF-IDF + SVM)** | `code/engine/classify/` | Trains/uses a classifier on P4 datasets (notebooks). |
 | **Fine-tuning** | `code/engine/fine-tuning/` | Instruction-tuning for P4 generation (notebook). |
 | **Measurements (FTE/NFTE, CoT, Pass@k)** | `code/measure/`, `code/pass_at_k/` | Evaluation notebooks: zero-shot, few-shot, chain-of-thought, pass@k. |
-| **P4 validation server** | `code/server-validation/p4testgen-server/` | FastAPI server that runs P4 validation in Docker containers (used by experiments, not required for the wrapper). |
+| **VRF B Docker image** | `code/server-validation/p4testgen-server/` | Dockerfile + scripts for the p4testgen/PTF worker containers (built once, managed by the backend). |
 | **Dataset pipeline** | `dataset/` | Scripts to build/process the P4 dataset (e.g. for training). |
 
 You **do not need Google Colab**. The notebooks were developed in Colab but run fine locally in Jupyter if you install the same dependencies.
@@ -19,25 +19,31 @@ You **do not need Google Colab**. The notebooks were developed in Colab but run 
 
 ## How to run
 
-### Option A: Intent → P4 (simplest “run the project”)
+### Option A: Intent → P4 (simplest "run the project")
 
-This is the only part that works as a single script + Docker.
+This runs the full pipeline with a web UI.
 
-1. **Prerequisites:** Python 3, Docker Desktop (running), OpenAI API key.
+1. **Prerequisites:** Python 3, Docker Desktop (running), an OpenAI or Replicate API key.
 2. **Setup:**
    ```bash
-   cd "Initial Wrapper Implementation"
+   cd backend
    python3 -m venv venv
    source venv/bin/activate   # Windows: venv\Scripts\activate
    pip install -r requirements.txt
-   export OPENAI_API_KEY='your-api-key'
    ```
-3. **Run:**
+3. **Start the backend:**
    ```bash
-   python3 network_intent_to_p4.py
+   python api_server.py
    ```
-   Then enter a network intent when prompted (e.g. “Drop all packets from port 5”).  
-   See `Initial Wrapper Implementation/README.md` for details, YANG, and troubleshooting.
+4. **Start the frontend** (in a second terminal):
+   ```bash
+   cd backend/frontend
+   npm install   # first time only
+   npm run dev
+   ```
+5. Open [http://localhost:3000](http://localhost:3000) and use the UI to enter an intent and run the pipeline.
+
+   See `backend/README.md` for details on VRF stages, YANG support, and troubleshooting.
 
 ### Option B: Run the notebooks (classifier, fine-tuning, Pass@k, etc.)
 
@@ -49,14 +55,17 @@ This is the only part that works as a single script + Docker.
   ```
   Open the notebook you care about and run cells. For Hugging Face–based notebooks, set `HF_TOKEN` or log in via `huggingface-cli login` if required.
 
-### Option C: P4 validation server (for experiments)
+### Option C: VRF B Docker image (for functional testing)
 
-Only needed if you’re running experiments that call the validation API.
+Only needed if you want VRF B (p4testgen + PTF) functional testing.
 
-1. **Prerequisites:** Docker, Python 3.
-2. **Setup:** From repo root, install deps and build the container image (see `code/server-validation/p4testgen-server/` for Dockerfile/scripts).
-3. **Run:** Start the FastAPI app (e.g. `uvicorn main:app` in that directory). It will start Docker containers and expose a `/validate` endpoint.
+1. **Build the image** (one-time):
+   ```bash
+   cd code/server-validation/p4testgen-server
+   docker buildx build --tag p4_test_suite . --load
+   ```
+2. The container pool is managed from the backend — go to the **VRF B (Functional)** tab in the web UI and click **Start Pool**.
 
 ---
 
-**Summary:** For “run this project” in the sense of generating P4 from an intent, use **Option A** and you do **not** need Colab. Use Colab only if you want to run the research notebooks in the cloud; otherwise run them locally with Jupyter.
+**Summary:** For "run this project" in the sense of generating P4 from an intent, use **Option A** and you do **not** need Colab. Use Colab only if you want to run the research notebooks in the cloud; otherwise run them locally with Jupyter.
