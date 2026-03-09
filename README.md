@@ -22,15 +22,16 @@ This project provides an end-to-end system for translating network intent into v
 
 ### GCP Configuration
 1. Enable required APIs:
-   ```bash
+```bash
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com storage.googleapis.com compute.googleapis.com
 ```
 2. Create GCS bucket:
-   ```bash
+```bash
 gsutil mb -l us-central1 gs://YOUR_PROJECT_ID-models
 ```
 3. Upload model files:
-   ```bash
+
+```bash
 gsutil cp intent_pipeline.pkl gs://YOUR_PROJECT_ID-models/models/intent_pipeline.pkl
 gsutil cp few_shot_examples.json gs://YOUR_PROJECT_ID-models/models/few_shot_examples.json
 ```
@@ -57,7 +58,8 @@ gcloud run deploy p4-deploy-backend \
 ### Frontend Setup
 1. Set `VITE_API_BASE_URL` to your backend URL (Vercel env var)
 2. Run locally:
-   ```bash
+
+```bash
 cd frontend
 npm install
 npm run dev
@@ -101,7 +103,8 @@ See `requirements.txt` for backend dependencies:
 ## Logs & CI/CD
 - Cloud Build triggers rebuild/deploy on GitHub push
 - View logs:
-  ```bash
+
+```bash
 gcloud run services logs read p4-deploy-backend --region us-central1
 ```
 
