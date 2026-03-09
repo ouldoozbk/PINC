@@ -1,0 +1,22 @@
+steps:
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: gcloud
+  args:
+  - run
+  - deploy
+  - p4-deploy-backend
+  - --source=.
+  - --region=${_REGION}
+  - --platform=managed
+  - --allow-unauthenticated
+  - --set-env-vars=GCS_BUCKET=${_GCS_BUCKET},MODEL_PATH=${_MODEL_PATH},VALIDATION_SERVICE_URL=${_VALIDATION_SERVICE_URL},CORS_ORIGINS=${_CORS_ORIGINS}
+  - --set-secrets=LLM_API_KEY=LLM_API_KEY:latest
+
+substitutions:
+  _REGION: us-central1
+  _GCS_BUCKET: toypinc-models
+  _MODEL_PATH: models/intent_pipeline.pkl
+  _VALIDATION_SERVICE_URL: http://136.117.52.251:8000/validate
+  _CORS_ORIGINS: https://test-gcp-lemon.vercel.app/
+options:
+  substitutionOption: ALLOW_LOOSE

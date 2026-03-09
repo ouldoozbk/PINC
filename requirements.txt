@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+google-cloud-storage
+requests
+scikit-learn
