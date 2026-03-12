@@ -5,6 +5,9 @@ Endpoints:
   POST /api/run-pipeline        Run full pipeline (intent → P4 code → VRF A → VRF A.5)
   GET  /api/pipeline-status     Poll live pipeline state
   POST /api/stop-pipeline       Stop the running pipeline
+  POST /api/run-dataset         Run pipeline on dataset.json entries
+  GET  /api/dataset-status      Poll dataset run progress and results
+  POST /api/stop-dataset        Stop the dataset run
   POST /api/parse-intent        Convert intent text → expected_behavior.json
   POST /api/extract-behavior    Extract actual_behavior.json from P4 code
   POST /api/compare             Compare expected vs actual behavior
@@ -75,6 +78,8 @@ class PipelineRequest(BaseModel):
     intent: str
     yang_model: Optional[str] = None
     yang_data: Optional[str] = None
+    api_key: Optional[str] = None
+    provider: Optional[str] = None  # "replicate" | "openai"
     max_attempts: int = 10
 
 
@@ -91,6 +96,48 @@ class DispatchCodeRequest(BaseModel):
 class PoolConfigRequest(BaseModel):
     num_containers: Optional[int] = None
     port_start: Optional[int] = None
+
+
+class DatasetRunRequest(BaseModel):
+    """Request body for /api/run-dataset."""
+    limit: int = 5  # Number of dataset entries to run (default 5 for quick testing)
+    api_key: Optional[str] = None
+    provider: Optional[str] = "replicate"
+    max_attempts: int = 1  # Attempts per intent (1 = single shot, no retries)
+
+
+# Path to dataset.json (relative to project root)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DATASET_PATH = os.path.join(_PROJECT_ROOT, "code", "engine", "classify", "dataset.json")
+
+_dataset_stop = threading.Event()
+dataset_state: Dict[str, Any] = {
+    "running": False,
+    "status": "idle",  # idle | running | done
+    "total": 0,
+    "completed": 0,
+    "passed": 0,
+    "failed": 0,
+    "current_intent": "",
+    "current_index": 0,
+    "results": [],
+    "error": None,
+}
+
+
+def _reset_dataset_state():
+    dataset_state.update({
+        "running": False,
+        "status": "idle",
+        "total": 0,
+        "completed": 0,
+        "passed": 0,
+        "failed": 0,
+        "current_intent": "",
+        "current_index": 0,
+        "results": [],
+        "error": None,
+    })
 
 
 app = FastAPI(
@@ -261,6 +308,11 @@ def api_run_pipeline(req: PipelineRequest):
     if not intent:
         return JSONResponse(status_code=400, content={"error": "intent is required"})
 
+    api_key = (req.api_key or "").strip() or None
+    provider = (req.provider or "replicate").strip().lower()
+    if not api_key:
+        return JSONResponse(status_code=400, content={"error": "API key is required"})
+
     yang_model = (req.yang_model or "").strip() or None
     yang_data = (req.yang_data or "").strip() or None
     max_attempts = req.max_attempts
@@ -273,7 +325,7 @@ def api_run_pipeline(req: PipelineRequest):
 
     thread = threading.Thread(
         target=_run_pipeline_thread,
-        args=(intent, yang_model, yang_data, max_attempts),
+        args=(intent, yang_model, yang_data, max_attempts, api_key, provider),
         daemon=True,
     )
     thread.start()
@@ -294,6 +346,187 @@ def api_stop_pipeline():
         return JSONResponse(status_code=409, content={"error": "Pipeline is not running"})
     _pipeline_stop.set()
     _log("Stop requested — pipeline will halt after current step.")
+    return {"message": "Stop signal sent"}
+
+
+# ─── Dataset validation (run pipeline on dataset.json entries) ─────────────────
+
+def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider: str):
+    """Run the full pipeline on each dataset entry. Updates dataset_state."""
+    if provider == "openai":
+        os.environ["OPENAI_API_KEY"] = api_key or ""
+        os.environ.pop("REPLICATE_API_TOKEN", None)
+    else:
+        os.environ["REPLICATE_API_TOKEN"] = api_key or ""
+        os.environ.pop("OPENAI_API_KEY", None)
+
+    try:
+        from pipeline import (
+            cleanup_files,
+            create_detailed_prompt,
+            generate_p4_code,
+        )
+
+        dataset_state["total"] = len(entries)
+        dataset_state["status"] = "running"
+        dataset_state["results"] = []
+
+        for i, entry in enumerate(entries):
+            if _dataset_stop.is_set():
+                dataset_state["status"] = "done"
+                dataset_state["error"] = "Stopped by user"
+                return
+
+            intent = entry.get("text", "").strip()
+            label = entry.get("label", "")
+            if not intent:
+                dataset_state["results"].append({
+                    "index": i + 1,
+                    "intent": "(empty)",
+                    "label": label,
+                    "passed": False,
+                    "stage": "skipped",
+                    "error": "Empty intent",
+                })
+                dataset_state["failed"] += 1
+                dataset_state["completed"] += 1
+                continue
+
+            dataset_state["current_index"] = i + 1
+            dataset_state["current_intent"] = intent[:80] + ("..." if len(intent) > 80 else "")
+
+            cleanup_files()
+            expected = generate_expected_behavior(intent)
+            save_expected_behavior(expected, "expected_behavior.json")
+
+            p4_code = None
+            last_score = 0.0
+            last_feedback = None
+
+            for attempt in range(1, max_attempts + 1):
+                if _dataset_stop.is_set():
+                    break
+                if attempt == 1:
+                    prompt = create_detailed_prompt(intent, None, None, None)
+                else:
+                    error_section = (
+                        f"\n=== PREVIOUS ATTEMPT ===\n{p4_code or ''}\n\n"
+                        "Fix the intent mismatch."
+                    )
+                    prompt = create_detailed_prompt(intent, None, None, error_section)
+
+                p4_code = generate_p4_code(prompt)
+                if p4_code is None:
+                    continue
+
+                cleaned = clean_p4_code(p4_code)
+                with open("test.p4", "w") as f:
+                    f.write(cleaned)
+
+                # VRF A.5 only: skip compilation, validate intent alignment directly
+                passed, feedback, score, _ = run_vrf_a5(
+                    cleaned,
+                    expected_behavior_path="expected_behavior.json",
+                    actual_behavior_path="actual_behavior.json",
+                )
+                last_score = score
+                last_feedback = feedback
+                if passed:
+                    dataset_state["passed"] += 1
+                    dataset_state["results"].append({
+                        "index": i + 1,
+                        "intent": intent[:100],
+                        "label": label,
+                        "passed": True,
+                        "stage": "vrf_a5",
+                        "match_score": score,
+                    })
+                    break
+            else:
+                dataset_state["failed"] += 1
+                fail_reason = last_feedback or f"Score {last_score:.2%}"
+                dataset_state["results"].append({
+                    "index": i + 1,
+                    "intent": intent[:100],
+                    "label": label,
+                    "passed": False,
+                    "stage": "vrf_a5",
+                    "error": str(fail_reason)[:200] if fail_reason else "Unknown",
+                })
+
+            dataset_state["completed"] += 1
+
+        dataset_state["status"] = "done"
+    except Exception as e:
+        dataset_state["status"] = "done"
+        dataset_state["error"] = str(e)
+    finally:
+        dataset_state["running"] = False
+
+
+@app.post("/api/run-dataset")
+def api_run_dataset(req: DatasetRunRequest):
+    """Run the pipeline on dataset.json entries. Returns immediately; poll /api/dataset-status."""
+    if dataset_state["running"]:
+        return JSONResponse(status_code=409, content={"error": "Dataset run is already in progress"})
+    if pipeline_state["running"]:
+        return JSONResponse(status_code=409, content={"error": "Pipeline is running; stop it first"})
+
+    api_key = (req.api_key or "").strip() or None
+    provider = (req.provider or "replicate").strip().lower()
+    if not api_key:
+        return JSONResponse(status_code=400, content={"error": "API key is required"})
+
+    if not os.path.exists(_DATASET_PATH):
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Dataset not found: {_DATASET_PATH}"},
+        )
+
+    entries = []
+    with open(_DATASET_PATH) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    limit = max(1, min(req.limit, len(entries)))
+    entries = entries[:limit]
+
+    _dataset_stop.clear()
+    _reset_dataset_state()
+    dataset_state["running"] = True
+
+    thread = threading.Thread(
+        target=_run_dataset_thread,
+        args=(entries, req.max_attempts, api_key, provider),
+        daemon=True,
+    )
+    thread.start()
+
+    return {
+        "message": f"Dataset run started ({limit} entries)",
+        "status": "running",
+        "total": limit,
+    }
+
+
+@app.get("/api/dataset-status")
+def api_dataset_status():
+    """Return current dataset run state and results."""
+    return dataset_state
+
+
+@app.post("/api/stop-dataset")
+def api_stop_dataset():
+    """Request the dataset run to stop after the current entry."""
+    if not dataset_state["running"]:
+        return JSONResponse(status_code=409, content={"error": "Dataset run is not running"})
+    _dataset_stop.set()
     return {"message": "Stop signal sent"}
 
 
@@ -553,8 +786,16 @@ def _run_vrf_b(p4_code: str) -> dict:
         vrf_b_pool.put(port)
 
 
-def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
+def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts, api_key, provider):
     """Run the full pipeline in a background thread, updating pipeline_state."""
+    # Set API key from request so pipeline.generate_p4_code can use it
+    if provider == "openai":
+        os.environ["OPENAI_API_KEY"] = api_key or ""
+        os.environ.pop("REPLICATE_API_TOKEN", None)
+    else:
+        os.environ["REPLICATE_API_TOKEN"] = api_key or ""
+        os.environ.pop("OPENAI_API_KEY", None)
+
     try:
         from pipeline import (
             cleanup_files,
@@ -603,7 +844,7 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts):
                 error_section += "\nIMPORTANT: Fix ALL errors. Start with code directly."
                 prompt = create_detailed_prompt(intent, yang_model, yang_data, error_section)
 
-            _log("Generating P4 code via Replicate...")
+            _log(f"Generating P4 code via {provider or 'replicate'}...")
             p4_code = generate_p4_code(prompt)
             if p4_code is None:
                 _log("LLM returned no output")

@@ -935,6 +935,207 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
   )
 }
 
+// ─── Tab: Dataset Validation ─────────────────────────────────────────────────
+
+function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
+  const polling = useRef(null)
+  const limit = form.datasetLimit ?? 5
+  const apiKey = form.apiKey ?? ''
+  const provider = form.provider ?? 'replicate'
+
+  const setField = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+
+  const start = async () => {
+    const res = await fetch(`${API}/api/run-dataset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        limit: Math.max(1, Math.min(100, parseInt(limit, 10) || 5)),
+        api_key: apiKey,
+        provider,
+        max_attempts: 1,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      alert(data.error || 'Failed to start dataset run')
+      return
+    }
+    setDatasetState({ ...data, running: true })
+    polling.current = setInterval(async () => {
+      try {
+        const r = await fetch(`${API}/api/dataset-status`)
+        const d = await r.json()
+        setDatasetState(d)
+        if (!d.running) clearInterval(polling.current)
+      } catch {
+        /* ignore */
+      }
+    }, 1500)
+  }
+
+  const stop = async () => {
+    try {
+      await fetch(`${API}/api/stop-dataset`, { method: 'POST' })
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => () => clearInterval(polling.current), [])
+
+  const running = datasetState?.running
+  const status = datasetState?.status ?? 'idle'
+  const total = datasetState?.total ?? 0
+  const completed = datasetState?.completed ?? 0
+  const passed = datasetState?.passed ?? 0
+  const failed = datasetState?.failed ?? 0
+  const results = datasetState?.results ?? []
+
+  return (
+    <div>
+      <div className={cardCls}>
+        <div className={cardTitle}>Dataset Validation (code/engine/classify/dataset.json)</div>
+        <p className="text-[0.78rem] text-muted mb-4">
+          Run intent → LLM → P4 → VRF A.5 only (no compilation). Pass = intent alignment score ≥ 85%.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-[0.82rem] font-medium text-muted mb-1.5">Number of entries</label>
+            <input
+              className={inputCls}
+              type="number"
+              value={limit}
+              onChange={e => setField('datasetLimit', e.target.value)}
+              min={1}
+              max={100}
+              disabled={running}
+            />
+          </div>
+          <div>
+            <label className="block text-[0.82rem] font-medium text-muted mb-1.5">LLM Provider</label>
+            <select
+              className={selectCls}
+              value={provider}
+              onChange={e => setField('provider', e.target.value)}
+              disabled={running}
+            >
+              <option value="replicate">Replicate (Llama 3)</option>
+              <option value="openai">OpenAI (GPT-4)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">API Key *</label>
+          <input
+            className={inputCls}
+            type="password"
+            value={apiKey}
+            onChange={e => setField('apiKey', e.target.value)}
+            placeholder={provider === 'openai' ? 'sk-...' : 'r8_...'}
+            disabled={running}
+          />
+        </div>
+
+        <div className="flex gap-2.5 items-center">
+          <button
+            className={btnPrimary}
+            onClick={start}
+            disabled={running || !apiKey}
+          >
+            {running ? (
+              <>
+                <span className={spinnerCls} /> Running ({completed}/{total})...
+              </>
+            ) : (
+              'Run Dataset'
+            )}
+          </button>
+          {running && (
+            <button
+              className={`${btnCls} px-5 py-2.5 text-sm bg-[#dc2626] text-white border-none`}
+              onClick={stop}
+            >
+              Stop
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Results summary */}
+      {(status === 'done' || completed > 0) && (
+        <div className={cardCls}>
+          <div className={cardTitle}>Results</div>
+          <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-muted text-[0.82rem]">Total:</span>
+              <span className="font-semibold">{completed}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={badgeSuccess}>Passed: {passed}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={badgeError}>Failed: {failed}</span>
+            </div>
+            {completed > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted text-[0.82rem]">Pass rate:</span>
+                <span className={`font-semibold ${scoreTextCls(passed / completed)}`}>
+                  {Math.round((passed / completed) * 100)}%
+                </span>
+              </div>
+            )}
+          </div>
+          {datasetState?.error && (
+            <p className="text-danger text-[0.82rem] mb-3">{datasetState.error}</p>
+          )}
+          {running && datasetState?.current_intent && (
+            <p className="text-muted text-[0.78rem] mb-3">
+              Current: {datasetState.current_intent}
+            </p>
+          )}
+          {results.length > 0 && (
+            <div className="max-h-[400px] overflow-y-auto">
+              <table className="w-full text-[0.78rem]">
+                <thead>
+                  <tr className="text-left text-muted border-b border-edge">
+                    <th className="py-2 pr-3">#</th>
+                    <th className="py-2 pr-3">Intent</th>
+                    <th className="py-2 pr-3">Label</th>
+                    <th className="py-2 pr-3">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r, i) => (
+                    <tr key={i} className="border-b border-edge/50">
+                      <td className="py-1.5 pr-3">{r.index}</td>
+                      <td className="py-1.5 pr-3 max-w-[300px] truncate" title={r.intent}>
+                        {r.intent}
+                      </td>
+                      <td className="py-1.5 pr-3">{r.label || '—'}</td>
+                      <td className="py-1.5 pr-3">
+                        {r.passed ? (
+                          <span className={badgeSuccess}>Pass</span>
+                        ) : (
+                          <span className={badgeError} title={r.error}>
+                            Fail ({r.stage})
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Tab: JSON Schemas ────────────────────────────────────────────────────
 
 function SchemasTab() {
@@ -1067,8 +1268,12 @@ export default function App() {
     yangModel: '',
     yangData: '',
     maxAttempts: 10,
+    apiKey: '',
+    provider: 'replicate',
+    datasetLimit: 5,
   })
   const [pipelineState, setPipelineState] = useState(null)
+  const [datasetState, setDatasetState] = useState(null)
 
   // Compile tab
   const [compileState, setCompileState] = useState({
@@ -1097,6 +1302,7 @@ export default function App() {
 
   const tabs = [
     { id: 'pipeline', label: 'Run Pipeline' },
+    { id: 'dataset', label: 'Dataset' },
     { id: 'compile', label: 'VRF A (Compile)' },
     { id: 'intent', label: 'VRF A.5 (Intent)' },
     { id: 'functional', label: 'VRF B (Functional)' },
@@ -1137,6 +1343,14 @@ export default function App() {
           setForm={setPipelineForm}
           pipelineState={pipelineState}
           setPipelineState={setPipelineState}
+        />
+      )}
+      {tab === 'dataset' && (
+        <DatasetTab
+          datasetState={datasetState}
+          setDatasetState={setDatasetState}
+          form={pipelineForm}
+          setForm={setPipelineForm}
         />
       )}
       {tab === 'compile' && <CompileTab compileState={compileState} setCompileState={setCompileState} />}
