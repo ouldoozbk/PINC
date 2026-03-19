@@ -445,3 +445,135 @@ gcloud run services logs read p4-deploy-backend --region us-central1
 4. Filter by severity or search for error messages (e.g. cerebras API failures, frontend errors, etc.)
 
 This is useful for troubleshooting failed requests, backend errors, or issues reported by the frontend.
+
+## 13. Retraining Collector Setup (Cloud Run Job + Scheduler)
+
+This section wires the new retraining collector flow:
+- API service writes immutable generation results to GCS
+- Scheduled Cloud Run Job scans new results, filters compiled=true, deduplicates
+- Collector updates canonical dataset + state
+- Collector writes retrain request marker when threshold is reached
+
+### 13.1 Ensure backend writes to expected results prefix
+
+The backend should write result objects to:
+
+`gs://<bucket>/results/<job_id>.json`
+
+Check this path exists after a `/generate` request.
+
+### 13.2 Build and push container image (shared by service and job)
+
+With Cloud Build, every time you push to GitHub, a new image is built and pushed to Artifact Registry. The image is tagged as `latest`, so both the Cloud Run service and the collector job will use the most recent build.
+
+### 13.3 Deploy/update Cloud Run service (API)
+
+See 13.2. Just ensure the deployed service is using the `latest` image from Artifact Registry, and has the correct env vars and secrets configured.
+
+### 13.4 Create service account for collector job, once
+
+```bash
+COLLECTOR_SA=collector-job-sa
+PROJECT_ID=$(gcloud config get-value project)
+
+gcloud iam service-accounts create ${COLLECTOR_SA} \
+  --display-name="Collector Cloud Run Job SA" || true
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${COLLECTOR_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${COLLECTOR_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/storage.objectViewer"
+```
+
+### 13.5 Create Cloud Run Job for collector
+
+```bash
+REGION=us-central1
+PROJECT_ID=$(gcloud config get-value project)
+SERVICE_NAME=p4-deploy-backend
+# Pull the image currently deployed to the API service.
+IMAGE=$(gcloud run services describe ${SERVICE_NAME} \
+  --region ${REGION} \
+  --format="value(spec.template.spec.containers[0].image)")
+COLLECTOR_SA=collector-job-sa
+
+BUCKET="toypinc-models"
+
+gcloud run jobs create retraining-collector \
+  --image "${IMAGE}" \
+  --region ${REGION} \
+  --service-account ${COLLECTOR_SA}@${PROJECT_ID}.iam.gserviceaccount.com \
+  --command python \
+  --args tools/training/collect_results_to_dataset.py,--bucket,${BUCKET},--threshold,500
+```
+
+If the job already exists, use update:
+
+```bash
+gcloud run jobs update retraining-collector \
+  --image "${IMAGE}" \
+  --region ${REGION} \
+  --service-account ${COLLECTOR_SA}@${PROJECT_ID}.iam.gserviceaccount.com \
+  --command python \
+  --args tools/training/collect_results_to_dataset.py,--bucket,${BUCKET},--threshold,500
+```
+### 13.6 Create training_data subfolder in GCS bucket and upload FINAL_p4_ds_clean_comments.jsonl
+FINAL_p4_ds_clean_comments.jsonl is in the PINC repo on GitHub. Download it and upload to GCS at:
+`gs://<bucket>/training_data/FINAL_p4_ds_clean_comments.jsonl`
+This is needed for the collector to read and update the canonical dataset. 
+
+### 13.7 Run collector once manually (smoke test)
+
+```bash
+gcloud run jobs execute retraining-collector --region ${REGION} --wait
+```
+
+Expected outputs in bucket:
+- `training_data/state.json`
+- `training_data/batches/batch-*.jsonl` (if new unique compiled rows found)
+- `training_data/FINAL_p4_ds_clean_comments.jsonl` (created or updated)
+- `training_data/retrain_requests/retrain-*.json` (only after threshold reached)
+
+### 13.8 Create Cloud Scheduler trigger
+
+```bash
+SCHEDULER_SA=scheduler-invoker-sa
+
+gcloud iam service-accounts create ${SCHEDULER_SA} \
+  --display-name="Scheduler Invoker SA" || true
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SCHEDULER_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/run.invoker"
+
+JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/retraining-collector:run"
+
+gcloud scheduler jobs create http retraining-collector-every-72h \
+  --location ${REGION} \
+  --schedule "0 3 */3 * *" \
+  --http-method POST \
+  --uri "${JOB_URI}" \
+  --oauth-service-account-email ${SCHEDULER_SA}@${PROJECT_ID}.iam.gserviceaccount.com
+```
+
+If you prefer daily collection, use:
+- schedule: `0 3 * * *`
+
+### 13.9 Validate provenance and schema after rebuild
+
+After the collector runs, check in GCS that:
+- `training_data/FINAL_p4_ds_clean_comments.jsonl` has new rows with expected provenance fields
+- `training_data/state.json` is updated with new `last_processed_object` and counters in the collector job should log these details for verification.
+
+### 13.10 About retraining trigger
+
+Current collector behavior:
+- sets `retrain_ready=true` in `training_data/state.json`
+- writes a marker in `training_data/retrain_requests/`
+
+You can then:
+- run your training job manually, or
+- add a second scheduled job that checks `retrain_ready` and launches training.

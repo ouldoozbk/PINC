@@ -240,7 +240,7 @@ Generate the P4 program now:"""
 def save_result_to_gcs(result: dict) -> str:
     bucket_name = os.environ["GCS_BUCKET"]
     job_id = str(uuid.uuid4())
-    blob_path = f"results/{job_id}.json"
+    blob_path = f"results/user_results/{job_id}.json"
 
     bucket = gcs_client.bucket(bucket_name)
     blob = bucket.blob(blob_path)
