@@ -402,6 +402,7 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
             p4_code = None
             last_score = 0.0
             last_feedback = None
+            last_detailed = None
 
             for attempt in range(1, max_attempts + 1):
                 if _dataset_stop.is_set():
@@ -424,13 +425,14 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                     f.write(cleaned)
 
                 # VRF A.5 only: skip compilation, validate intent alignment directly
-                passed, feedback, score, _ = run_vrf_a5(
+                passed, feedback, score, detailed = run_vrf_a5(
                     cleaned,
                     expected_behavior_path="expected_behavior.json",
                     actual_behavior_path="actual_behavior.json",
                 )
                 last_score = score
                 last_feedback = feedback
+                last_detailed = detailed
                 if passed:
                     dataset_state["passed"] += 1
                     dataset_state["results"].append({
@@ -440,6 +442,7 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                         "passed": True,
                         "stage": "vrf_a5",
                         "match_score": score,
+                        "detailed_scores": detailed,
                     })
                     break
             else:
@@ -451,6 +454,8 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                     "label": label,
                     "passed": False,
                     "stage": "vrf_a5",
+                    "match_score": last_score,
+                    "detailed_scores": last_detailed,
                     "error": str(fail_reason)[:200] if fail_reason else "Unknown",
                 })
 

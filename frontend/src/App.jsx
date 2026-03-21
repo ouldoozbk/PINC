@@ -935,6 +935,102 @@ function FunctionalTab({ vrfbState, setVrfbState }) {
   )
 }
 
+// ─── Dataset Results Table ────────────────────────────────────────────────────
+
+function DatasetResultsTable({ results }) {
+  const [expanded, setExpanded] = useState(null)
+
+  const DETAIL_KEYS = [
+    ['required_behaviors', 'Behaviors'],
+    ['headers', 'Headers'],
+    ['control_blocks', 'Control Blocks'],
+    ['prohibited_behaviors', 'Prohibited'],
+    ['performance', 'Performance'],
+  ]
+
+  return (
+    <div className="max-h-125 overflow-y-auto">
+      <table className="w-full text-[0.78rem]">
+        <thead>
+          <tr className="text-left text-muted border-b border-edge">
+            <th className="py-2 pr-3">#</th>
+            <th className="py-2 pr-3">Intent</th>
+            <th className="py-2 pr-3">Label</th>
+            <th className="py-2 pr-3">Score</th>
+            <th className="py-2 pr-3">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r, i) => (
+            <>
+              <tr
+                key={i}
+                className="border-b border-edge/50 cursor-pointer hover:bg-input/30 transition-colors"
+                onClick={() => setExpanded(expanded === i ? null : i)}
+              >
+                <td className="py-1.5 pr-3">{r.index}</td>
+                <td className="py-1.5 pr-3 max-w-75 truncate" title={r.intent}>
+                  {r.intent}
+                </td>
+                <td className="py-1.5 pr-3">{r.label || '—'}</td>
+                <td className="py-1.5 pr-3">
+                  {r.match_score != null ? (
+                    <span className={`font-semibold ${scoreTextCls(r.match_score)}`}>
+                      {Math.round(r.match_score * 100)}%
+                    </span>
+                  ) : '—'}
+                </td>
+                <td className="py-1.5 pr-3">
+                  <span className="flex items-center gap-1.5">
+                    {r.passed ? (
+                      <span className={badgeSuccess}>PASS</span>
+                    ) : (
+                      <span className={badgeError}>FAIL ({r.stage?.toUpperCase()})</span>
+                    )}
+                    <span className="text-muted text-[0.72rem]">{expanded === i ? '▲' : '▼'}</span>
+                  </span>
+                </td>
+              </tr>
+              {expanded === i && (
+                <tr key={`${i}-detail`} className="border-b border-edge bg-input/20">
+                  <td colSpan={5} className="px-3 py-2.5">
+                    {r.detailed_scores && (
+                      <div className="mb-2">
+                        <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1.5">Score Breakdown</p>
+                        <div className="flex flex-wrap gap-3">
+                          {DETAIL_KEYS.map(([key, label]) =>
+                            r.detailed_scores[key] != null ? (
+                              <div key={key} className="flex items-center gap-1.5">
+                                <span className="text-muted">{label}:</span>
+                                <span className={`font-semibold ${scoreTextCls(r.detailed_scores[key])}`}>
+                                  {Math.round(r.detailed_scores[key] * 100)}%
+                                </span>
+                              </div>
+                            ) : null
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {!r.passed && r.error && (
+                      <div>
+                        <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Feedback</p>
+                        <p className="text-danger text-[0.78rem] leading-relaxed whitespace-pre-wrap">{r.error}</p>
+                      </div>
+                    )}
+                    {r.passed && !r.detailed_scores && (
+                      <p className="text-muted text-[0.78rem]">No detail available.</p>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // ─── Tab: Dataset Validation ─────────────────────────────────────────────────
 
 function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
@@ -1097,38 +1193,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
             </p>
           )}
           {results.length > 0 && (
-            <div className="max-h-[400px] overflow-y-auto">
-              <table className="w-full text-[0.78rem]">
-                <thead>
-                  <tr className="text-left text-muted border-b border-edge">
-                    <th className="py-2 pr-3">#</th>
-                    <th className="py-2 pr-3">Intent</th>
-                    <th className="py-2 pr-3">Label</th>
-                    <th className="py-2 pr-3">Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((r, i) => (
-                    <tr key={i} className="border-b border-edge/50">
-                      <td className="py-1.5 pr-3">{r.index}</td>
-                      <td className="py-1.5 pr-3 max-w-[300px] truncate" title={r.intent}>
-                        {r.intent}
-                      </td>
-                      <td className="py-1.5 pr-3">{r.label || '—'}</td>
-                      <td className="py-1.5 pr-3">
-                        {r.passed ? (
-                          <span className={badgeSuccess}>Pass</span>
-                        ) : (
-                          <span className={badgeError} title={r.error}>
-                            Fail ({r.stage})
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DatasetResultsTable results={results} />
           )}
         </div>
       )}
