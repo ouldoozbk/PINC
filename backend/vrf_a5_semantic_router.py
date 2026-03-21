@@ -77,9 +77,7 @@ BUCKET_HEADERS: Dict[str, List[str]] = {
 }
 
 
-# ---------------------------------------------------------------------------
 # Lazy model + embedding cache (avoid loading the model at import time)
-# ---------------------------------------------------------------------------
 _model = None
 _template_embeddings: Optional[Dict[str, object]] = None  # bucket -> np.ndarray
 
@@ -104,10 +102,7 @@ def _get_template_embeddings() -> Dict[str, object]:
     return _template_embeddings
 
 
-# ---------------------------------------------------------------------------
 # Public API
-# ---------------------------------------------------------------------------
-
 def route_intent_to_buckets(
     intent: str,
     threshold: float = SIMILARITY_THRESHOLD,
