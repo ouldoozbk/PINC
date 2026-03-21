@@ -33,9 +33,22 @@ CODE_BUCKET_SIGNALS = [
     ("action_call",  r"\b(ipv4_forward|l3_forward|set_egress|set_nhop|ecmp)\b", "forwarding"),
     ("table_key",    r"\bipv4\.(dst|src)Addr\b",                                 "forwarding"),
     ("table_key",    r"\bstandard_metadata\.egress_spec\b",                      "forwarding"),
-    # encapsulation
+    # encapsulation (P4_14 primitives + P4_16 setValid/setInvalid + tunnel names)
     ("action_call",  r"\badd_header\s*\(",                                        "encapsulation"),
     ("action_call",  r"\bremove_header\s*\(",                                     "encapsulation"),
+    ("action_call",  r"\bsetValid\s*\(",                                          "encapsulation"),
+    ("action_call",  r"\bsetInvalid\s*\(",                                        "encapsulation"),
+    ("action_body",  r"\bhdr\.\w+\.setValid\s*\(",                                "encapsulation"),
+    ("action_body",  r"\bhdr\.\w+\.setInvalid\s*\(",                              "encapsulation"),
+    # setValid/setInvalid called directly in apply blocks (extern_call includes apply text)
+    ("extern_call",  r"\bsetValid\s*\(",                                          "encapsulation"),
+    ("extern_call",  r"\bsetInvalid\s*\(",                                        "encapsulation"),
+    ("table_name",   r"\b(tunnel|encap|decap|gre|vxlan|ipip|overlay)\b",          "encapsulation"),
+    ("action_call",  r"\b(encap|decap|tunnel_encap|tunnel_decap|add_tunnel)\b",   "encapsulation"),
+    # tunnel-specific header type names
+    ("header_type",  r"\b(vxlan_t|gre_t|geneve_t|ipip_t|tunnel_t)\b",            "encapsulation"),
+    ("header_type",  r"\bouter_\w+",                                              "encapsulation"),
+    ("header_type",  r"\binner_\w+",                                              "encapsulation"),
     # header_rewriting
     ("action_body",  r"\b(ipv4\.srcAddr|ipv4\.dstAddr|tcp\.srcPort|tcp\.dstPort)\s*=", "header_rewriting"),
     # filtering
@@ -48,7 +61,12 @@ CODE_BUCKET_SIGNALS = [
     ("extern_call",  r"\bregister\b",                                             "monitoring"),
     # label_tag
     ("header_type",  r"\b(vlan_tag_t|mpls_t)\b",                                 "label_tag"),
+    ("header_type",  r"\bmpls\w*",                                                "label_tag"),
+    ("header_type",  r"\blabel\w*",                                               "label_tag"),
     ("action_body",  r"\bhdr\.(vlan|mpls)\b",                                     "label_tag"),
+    ("action_body",  r"\bhdr\.\w*(label|mpls)\w*",                                "label_tag"),
+    ("action_call",  r"\b(push_label|pop_label|swap_label|push_mpls|pop_mpls|label_push|label_pop)\b", "label_tag"),
+    ("table_name",   r"\b\w*(mpls|label_switch|lsp|fec)\w*\b",                   "label_tag"),
     # group_service
     ("action_call",  r"\bset_mgid\s*\(",                                          "group_service"),
     ("extern_call",  r"\bclone_preserving_field_list\(",                          "group_service"),
@@ -57,5 +75,8 @@ CODE_BUCKET_SIGNALS = [
     ("action_call",  r"\b(verify_checksum|update_checksum)\s*\(",                 "error_detection"),
     # vpn_crypto
     ("header_type",  r"\b(esp_t|ah_t|ipsec_\w+)\b",                              "vpn_crypto"),
+    ("header_type",  r"\bl2tp\w*",                                                "vpn_crypto"),
     ("table_name",   r"\b(ipsec|vpn|crypto)\b",                                   "vpn_crypto"),
+    ("table_name",   r"\bl2tp\w*",                                                "vpn_crypto"),
+    ("action_call",  r"\bl2tp_\w+",                                               "vpn_crypto"),
 ]
