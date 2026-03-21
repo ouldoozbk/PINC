@@ -9,10 +9,24 @@ SIMILARITY_THRESHOLD are returned as matched.
 
 from __future__ import annotations
 
+import re
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
 # Similarity threshold from the proposal (Section 2.2).
 SIMILARITY_THRESHOLD = 0.8
+
+# Lightweight keyword rules used when semantic model imports are unavailable.
+_KEYWORD_RULES: Dict[str, Tuple[str, ...]] = {
+    "forwarding": ("forward", "route", "routing", "switch", "next hop", "nexthop", "ecmp", "multipath"),
+    "encapsulation": ("encapsulat", "encap", "tunnel", "vxlan", "gre", "ip-in-ip", "ip in ip"),
+    "header_rewriting": ("rewrite", "nat", "masquerad", "translate", "source ip", "dst ip", "tcp src", "tcp dst"),
+    "filtering": ("filter", "firewall", "acl", "drop", "mark_to_drop", "block", "deny"),
+    "monitoring": ("monitor", "telemetry", "clone", "mirror", "counter", "meter", "int", "timestamp"),
+    "label_tag": ("vlan", "mpls", "802.1q", "vlan tag", "label"),
+    "group_service": ("multicast", "broadcast", "replicat", "set_mgid", "anycast"),
+    "error_detection": ("checksum", "verify_checksum", "update_checksum", "integrity", "crc"),
+    "vpn_crypto": ("ipsec", "vpn", "crypto", "esp", "ah", "tls", "ike"),
+}
 
 # Canonical intent template for each of the nine buckets.
 # Written to be paraphrase-rich so the embedding captures the full semantic scope.
@@ -85,7 +99,13 @@ _template_embeddings: Optional[Dict[str, object]] = None  # bucket -> np.ndarray
 def _load_model():
     global _model
     if _model is None:
-        from sentence_transformers import SentenceTransformer  # type: ignore
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+        except Exception as exc:
+            raise RuntimeError(
+                "sentence-transformers is not available. Install dependencies in backend/requirements.txt "
+                "or route_intent_to_buckets will use keyword fallback only."
+            ) from exc
         _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
@@ -106,6 +126,7 @@ def _get_template_embeddings() -> Dict[str, object]:
 def route_intent_to_buckets(
     intent: str,
     threshold: float = SIMILARITY_THRESHOLD,
+    fallback_to_best: bool = False,
 ) -> Tuple[FrozenSet[str], Dict[str, float]]:
     """
     Embed *intent* and compare against all nine bucket templates via cosine similarity.
@@ -114,33 +135,49 @@ def route_intent_to_buckets(
         matched_buckets: frozenset of bucket names with similarity >= threshold.
         similarities:    dict mapping every bucket name to its cosine similarity score.
 
-    Falls back to the highest-scoring bucket when no template clears the threshold,
-    so the caller always receives at least one bucket.
+    By default, no forced bucket fallback is applied. Set `fallback_to_best=True`
+    to preserve the old behavior of always returning at least one bucket.
     """
+    intent = (intent or "").strip()
+    if not intent:
+        return (frozenset({"forwarding"}) if fallback_to_best else frozenset(), {bucket: 0.0 for bucket in BUCKET_TEMPLATES})
+
     import numpy as np  # type: ignore
 
-    model = _load_model()
-    intent_vec = model.encode([intent.strip()], convert_to_numpy=True, normalize_embeddings=True)[0]
+    similarities: Dict[str, float] = {bucket: 0.0 for bucket in BUCKET_TEMPLATES}
+    matched = set()
 
-    template_embeddings = _get_template_embeddings()
-    similarities: Dict[str, float] = {}
-    for bucket, tmpl_vec in template_embeddings.items():
-        # Vectors are L2-normalised, so dot product == cosine similarity.
-        similarities[bucket] = float(np.dot(intent_vec, tmpl_vec))
+    # Primary path: semantic similarity.
+    try:
+        model = _load_model()
+        intent_vec = model.encode([intent], convert_to_numpy=True, normalize_embeddings=True)[0]
 
-    matched = frozenset(b for b, s in similarities.items() if s >= threshold)
+        template_embeddings = _get_template_embeddings()
+        for bucket, tmpl_vec in template_embeddings.items():
+            # Vectors are L2-normalised, so dot product == cosine similarity.
+            similarities[bucket] = float(np.dot(intent_vec, tmpl_vec))
+        matched = {bucket for bucket, score in similarities.items() if score >= threshold}
+    except Exception:
+        # Fallback to deterministic keyword heuristics when model dependencies are missing
+        # or model load fails for any reason.
+        lower_intent = intent.lower()
+        keywords = set(re.findall(r"[a-z0-9_\\.]+", lower_intent))
 
-    # Fallback: always return at least one bucket.
-    if not matched:
+        for bucket, patterns in _KEYWORD_RULES.items():
+            if any(p in lower_intent for p in patterns) or any(any(k.startswith(p.rstrip("*")) for k in keywords) for p in patterns):
+                matched.add(bucket)
+
+    if not matched and fallback_to_best and similarities:
+        # Preserve old behavior: choose the highest-scoring bucket for compatibility.
         best_bucket = max(similarities, key=similarities.__getitem__)
-        matched = frozenset({best_bucket})
+        matched = {best_bucket}
 
-    return matched, similarities
+    return frozenset(sorted(matched)), similarities
 
 
 def describe_routing(intent: str, threshold: float = SIMILARITY_THRESHOLD) -> str:
     """Human-readable summary of routing result (useful for debugging)."""
-    buckets, sims = route_intent_to_buckets(intent, threshold)
+    buckets, sims = route_intent_to_buckets(intent, threshold, fallback_to_best=True)
     lines = [f"Intent: {intent!r}", f"Threshold: {threshold}", "Similarities:"]
     for bucket in sorted(BUCKET_TEMPLATES):
         marker = "✓" if bucket in buckets else " "

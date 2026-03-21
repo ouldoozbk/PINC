@@ -161,7 +161,9 @@ def _classify_buckets(code: str) -> Set[str]:
     extern_text = _extract_extern_text(clean) + ' ' + _extract_apply_block_text(clean)
 
     # Build one concatenated string per signal type.
-    action_text = ' '.join(body for _, body in action_pairs)
+    # Include action names as well as bodies so taxonomy patterns can match
+    # semantic naming conventions (e.g., encap_tunnel, push_vlan, set_nexthop).
+    action_text = ' '.join(f"{name} {body}" for name, body in action_pairs)
 
     table_key_text = ' '.join(
         km.group(1)
@@ -185,9 +187,29 @@ def _classify_buckets(code: str) -> Set[str]:
         if text and re.search(pattern, text, re.IGNORECASE):
             buckets.add(bucket)
 
-    # Default fallback: a compiled P4 program with no other signals is a forwarder.
-    if not buckets:
+    # Heuristic recovery: many generated programs implement core intent logic
+    # via direct header validity or metadata assignments across apply/control
+    # blocks. Capture the most common missed patterns.
+    if "encapsulation" not in buckets and re.search(
+        r"\bhdr\.\w*(gre|vxlan|geneve|ipip|tunnel|outer|mpls)\w*\.set(Valid|Invalid)\s*\(",
+        clean,
+        re.IGNORECASE,
+    ):
+        buckets.add("encapsulation")
+
+    if "forwarding" not in buckets and re.search(
+        r"\bstandard_metadata\.egress_spec\s*=",
+        clean,
+        re.IGNORECASE,
+    ):
         buckets.add("forwarding")
+
+    if "group_service" not in buckets and re.search(
+        r"\bstandard_metadata\.(mcast_grp|egress_rid)\s*=",
+        clean,
+        re.IGNORECASE,
+    ):
+        buckets.add("group_service")
 
     return buckets
 

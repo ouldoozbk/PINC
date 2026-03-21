@@ -3,3 +3,5 @@ uvicorn[standard]
 httpx
 replicate
 sentence-transformers
+torch
+numpy

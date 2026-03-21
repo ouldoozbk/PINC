@@ -124,6 +124,7 @@ def compute_intent_match_score(
     #    Recall = |expected ∩ actual| / |expected|
     #    A superset actual (code does more than asked) does not penalize.
     expected_buckets: Set[str] = set(expected_json.get("buckets") or [])
+    expected_has_bucket_key = "buckets" in expected_json
 
     # Fallback: derive expected bucket set from required_behaviors behavior_ids
     # (covers old expected_behavior.json files that predate the router).
@@ -148,7 +149,9 @@ def compute_intent_match_score(
         covered = len(expected_buckets & actual_buckets)
         scores["bucket_recall"] = covered / len(expected_buckets)
     else:
-        scores["bucket_recall"] = 1.0
+        # If the expected spec has no declared bucket signal, do not grant
+        # perfect recall by default; this avoids silent false-positives.
+        scores["bucket_recall"] = 0.0 if expected_has_bucket_key else 0.0
 
     # 2. Edit distance on concrete header identifiers
     #    Applied ONLY to these enumerable tokens, not to bucket names,

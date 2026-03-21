@@ -28,6 +28,7 @@ import os
 import subprocess
 import sys
 import threading
+import traceback
 from datetime import datetime, timezone
 from queue import Queue, Empty
 from typing import Any, Dict, Optional
@@ -103,7 +104,7 @@ class DatasetRunRequest(BaseModel):
     limit: int = 5  # Number of dataset entries to run (default 5 for quick testing)
     api_key: Optional[str] = None
     provider: Optional[str] = "replicate"
-    max_attempts: int = 1  # Attempts per intent (1 = single shot, no retries)
+    max_attempts: int = 3  # Attempts per intent; retries use VRF A.5 feedback.
 
 
 # Path to dataset.json (relative to project root)
@@ -412,7 +413,8 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                 else:
                     error_section = (
                         f"\n=== PREVIOUS ATTEMPT ===\n{p4_code or ''}\n\n"
-                        "Fix the intent mismatch."
+                        f"=== VRF A.5 FEEDBACK ===\n{last_feedback or 'Intent mismatch. Improve bucket coverage.'}\n\n"
+                        "Fix the intent mismatch and include the missing buckets explicitly."
                     )
                     prompt = create_detailed_prompt(intent, None, None, error_section)
 
@@ -468,7 +470,7 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
         dataset_state["status"] = "done"
     except Exception as e:
         dataset_state["status"] = "done"
-        dataset_state["error"] = str(e)
+        dataset_state["error"] = f"{e}\n{traceback.format_exc(limit=4)}"
     finally:
         dataset_state["running"] = False
 
