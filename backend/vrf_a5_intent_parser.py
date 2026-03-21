@@ -1,6 +1,9 @@
 """
 VRF A.5: Intent Parser — Convert natural language intent into expected_behavior.json.
 Used before code generation to define the specification we will validate against.
+
+Intent-to-bucket routing now uses semantic embeddings (all-MiniLM-L6-v2) via
+vrf_a5_semantic_router, replacing the previous 12-entry regex INTENT_BEHAVIOR_MAP.
 """
 
 from __future__ import annotations
@@ -11,26 +14,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Set, Tuple
 
+from vrf_a5_semantic_router import BUCKET_HEADERS, route_intent_to_buckets
 
-# Keywords that map intent phrases to behavior_ids and required headers.
-# NOTE: Use \w* after keywords (not \b at end) so we match inflected forms
-# like "learning", "forwarding", "filtering" etc.
-INTENT_BEHAVIOR_MAP = [
-    (r"\b(switch\w*|forward\w*)\b", "forwarding", ["ethernet"]),
-    (r"\b(mac\s+learn\w*|learn\w*\s+mac|source\s+mac)\b", "mac_learning", ["ethernet"]),
-    (r"\b(destination\s+mac|dst\s+mac|forward\w*\s+by\s+mac|mac\s+forward\w*)\b", "mac_forwarding", ["ethernet"]),
-    (r"\b(firewall\w*|filter\w*|drop\w*|block\w*)\b", "packet_filter", ["ethernet", "ipv4"]),
-    (r"\b(tcp\s+syn|syn\s+packet)\b", "tcp_syn_filter", ["ethernet", "ipv4", "tcp"]),
-    (r"\b(ip\s+forward\w*|routing|route\w*)\b", "ip_forwarding", ["ethernet", "ipv4"]),
-    (r"\b(nat|network\s+address\s+translation)\b", "nat", ["ethernet", "ipv4"]),
-    (r"\b(load\s+balanc\w*)\b", "load_balancing", ["ethernet", "ipv4"]),
-    (r"\b(vlan\w*|vlan\s+tag\w*)\b", "vlan_handling", ["ethernet", "vlan"]),
-    (r"\b(arp|address\s+resolution)\b", "arp_handling", ["ethernet", "arp"]),
-    (r"\b(mirror\w*|clone\w*)\b", "packet_mirroring", ["ethernet"]),
-    (r"\b(counter\w*|count\w*|meter\w*)\b", "counting", ["ethernet"]),
-]
 
-# Phrases that suggest prohibited behaviors
+# Phrases that suggest prohibited behaviors (kept as lightweight regex — no embedding needed).
 PROHIBITED_PATTERNS = [
     (r"\b(drop\s+all|drop\s+by\s+default|drop\s+everything)\b", "packet_drop_by_default"),
     (r"\b(static\s+route|hardcoded\s+route)\b", "static_routing"),
@@ -38,40 +25,27 @@ PROHIBITED_PATTERNS = [
 
 
 def _infer_behaviors_and_headers(intent: str) -> Tuple[List[dict], Set[str]]:
-    """Infer required_behaviors and headers_required from intent text."""
-    intent_lower = intent.lower().strip()
-    behaviors_seen = set()
-    required_behaviors = []
-    all_headers = set()
+    """
+    Route the intent to the 9-bucket taxonomy via semantic embeddings, then
+    build required_behaviors and headers_required from the matched buckets.
+    """
+    matched_buckets, _ = route_intent_to_buckets(intent)
 
-    for pattern, behavior_id, headers in INTENT_BEHAVIOR_MAP:
-        if re.search(pattern, intent_lower, re.IGNORECASE) and behavior_id not in behaviors_seen:
-            behaviors_seen.add(behavior_id)
-            required_behaviors.append({
-                "behavior_id": behavior_id,
-                "description": f"Inferred from intent: {behavior_id.replace('_', ' ')}",
-                "components": {
-                    "table_required": True,
-                    "table_type": "exact",
-                    "key_fields": [],
-                    "action_types": []
-                }
-            })
-            all_headers.update(headers)
+    required_behaviors: List[dict] = []
+    all_headers: Set[str] = set()
 
-    # If nothing matched, treat whole intent as one generic behavior so we don't fail everything
-    if not required_behaviors:
+    for bucket in sorted(matched_buckets):  # sorted for deterministic output
         required_behaviors.append({
-            "behavior_id": "intent_impl",
-            "description": intent[:200],
+            "behavior_id": bucket,
+            "description": f"Inferred from intent: {bucket.replace('_', ' ')}",
             "components": {
                 "table_required": True,
                 "table_type": "exact",
                 "key_fields": [],
-                "action_types": []
-            }
+                "action_types": [],
+            },
         })
-        all_headers.add("ethernet")
+        all_headers.update(BUCKET_HEADERS.get(bucket, ["ethernet"]))
 
     return required_behaviors, all_headers
 
@@ -90,28 +64,32 @@ def generate_expected_behavior(intent: str, intent_id: Optional[str] = None) -> 
     """
     Convert natural language intent into expected_behavior.json.
 
-    Uses keyword/template inference. Can be extended with LLM-based parsing
-    for complex intents (see vrf-validation.md).
+    Uses semantic embedding routing (all-MiniLM-L6-v2) to assign the intent
+    to one or more of the nine taxonomy buckets, then builds the expected
+    behavior spec from those buckets.
     """
     if not intent or not intent.strip():
         intent = "basic packet forwarding"
 
+    matched_buckets, similarities = route_intent_to_buckets(intent)
     required_behaviors, headers_required = _infer_behaviors_and_headers(intent)
     prohibited_behaviors = _infer_prohibited(intent)
 
     expected = {
         "intent_id": intent_id or f"intent_{uuid.uuid4().hex[:12]}",
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "intent_type": "inferred",
+        "intent_type": "semantic",
         "raw_intent": intent[:500],
+        "buckets": sorted(matched_buckets),
+        "bucket_similarities": {k: round(v, 4) for k, v in similarities.items()},
         "required_behaviors": required_behaviors,
         "headers_required": list(headers_required),
         "control_blocks": {
             "ingress": {"required": True, "must_contain": []},
-            "egress": {"required": False}
+            "egress": {"required": False},
         },
         "prohibited_behaviors": prohibited_behaviors,
-        "performance_constraints": {}
+        "performance_constraints": {},
     }
     return expected
 
