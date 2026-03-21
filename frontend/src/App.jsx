@@ -1012,14 +1012,28 @@ function DatasetResultsTable({ results }) {
                       </div>
                     )}
                     {!r.passed && r.error && (
-                      <div>
+                      <div className="mb-2">
                         <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Feedback</p>
                         <p className="text-danger text-[0.78rem] leading-relaxed whitespace-pre-wrap">{r.error}</p>
                       </div>
                     )}
                     {r.passed && !r.detailed_scores && (
-                      <p className="text-muted text-[0.78rem]">No detail available.</p>
+                      <p className="text-muted text-[0.78rem] mb-2">No detail available.</p>
                     )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                      {r.expected_behavior && (
+                        <div>
+                          <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Expected Behavior</p>
+                          <pre className={`${jsonViewer} max-h-50`}>{pretty(r.expected_behavior)}</pre>
+                        </div>
+                      )}
+                      {r.p4_code && (
+                        <div>
+                          <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Generated P4 Code</p>
+                          <pre className={`${codeViewer} max-h-50`}>{r.p4_code}</pre>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}

@@ -443,6 +443,8 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                         "stage": "vrf_a5",
                         "match_score": score,
                         "detailed_scores": detailed,
+                        "expected_behavior": expected,
+                        "p4_code": cleaned,
                     })
                     break
             else:
@@ -457,6 +459,8 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                     "match_score": last_score,
                     "detailed_scores": last_detailed,
                     "error": str(fail_reason)[:200] if fail_reason else "Unknown",
+                    "expected_behavior": expected,
+                    "p4_code": p4_code,
                 })
 
             dataset_state["completed"] += 1
