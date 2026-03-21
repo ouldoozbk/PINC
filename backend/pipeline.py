@@ -29,11 +29,7 @@ from vrf_a_compiler import clean_p4_code, validate_p4_compilation, read_error_su
 from vrf_a5_intent_parser import generate_expected_behavior, save_expected_behavior
 from vrf_a5_validator import run_vrf_a5
 
-# Use Replicate if REPLICATE_API_TOKEN is set, otherwise OpenAI
-if os.getenv('REPLICATE_API_TOKEN'):
-    import replicate
-else:
-    import openai  # The OpenAI API library for generating P4 code
+# LLM clients imported lazily inside each generator function
 
 
 # Cleanup
@@ -375,6 +371,7 @@ IMPORTANT RULES:
 def _generate_p4_code_replicate(prompt):
     """Generate P4 code using Replicate (e.g. Meta Llama 3). Set REPLICATE_API_TOKEN."""
     try:
+        import replicate
         output = replicate.run(
             "meta/meta-llama-3-8b-instruct",
             input={
@@ -395,6 +392,7 @@ def _generate_p4_code_replicate(prompt):
 def _generate_p4_code_openai(prompt):
     """Generate P4 code using OpenAI. Set OPENAI_API_KEY."""
     try:
+        import openai
         openai.api_key = os.getenv("OPENAI_API_KEY")
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -411,13 +409,32 @@ def _generate_p4_code_openai(prompt):
         return None
 
 
+def _generate_p4_code_claude(prompt):
+    """Generate P4 code using Anthropic Claude claude-sonnet-4-5. Set ANTHROPIC_API_KEY."""
+    try:
+        import anthropic as anthropic_sdk
+        client = anthropic_sdk.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        message = client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=4000,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return message.content[0].text
+    except Exception as e:
+        print(f"Error generating P4 code (Claude): {e}")
+        return None
+
+
 def generate_p4_code(prompt):
-    """Generate P4 code using Replicate (if REPLICATE_API_TOKEN set) or OpenAI (if OPENAI_API_KEY set)."""
+    """Generate P4 code using Anthropic Claude, Replicate, or OpenAI based on which env var is set."""
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return _generate_p4_code_claude(prompt)
     if os.getenv("REPLICATE_API_TOKEN"):
         return _generate_p4_code_replicate(prompt)
     if os.getenv("OPENAI_API_KEY"):
         return _generate_p4_code_openai(prompt)
-    print("Error: Set either REPLICATE_API_TOKEN or OPENAI_API_KEY")
+    print("Error: Set ANTHROPIC_API_KEY, REPLICATE_API_TOKEN, or OPENAI_API_KEY")
     return None
 
 

@@ -220,6 +220,7 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
                   value={provider}
                   onChange={e => setField('provider', e.target.value)}
                 >
+                  <option value="anthropic">Anthropic (Claude Sonnet 4.5)</option>
                   <option value="replicate">Replicate (Llama 3)</option>
                   <option value="openai">OpenAI (GPT-4)</option>
                 </select>
@@ -248,7 +249,7 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
                 type="password"
                 value={apiKey}
                 onChange={e => setField('apiKey', e.target.value)}
-                placeholder={provider === 'openai' ? 'sk-...' : 'r8_...'}
+                placeholder={provider === 'openai' ? 'sk-...' : provider === 'anthropic' ? 'sk-ant-...' : 'r8_...'}
               />
             </div>
 
@@ -1131,6 +1132,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
               onChange={e => setField('provider', e.target.value)}
               disabled={running}
             >
+              <option value="anthropic">Anthropic (Claude Sonnet 4.5)</option>
               <option value="replicate">Replicate (Llama 3)</option>
               <option value="openai">OpenAI (GPT-4)</option>
             </select>
@@ -1144,7 +1146,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
             type="password"
             value={apiKey}
             onChange={e => setField('apiKey', e.target.value)}
-            placeholder={provider === 'openai' ? 'sk-...' : 'r8_...'}
+            placeholder={provider === 'openai' ? 'sk-...' : provider === 'anthropic' ? 'sk-ant-...' : 'r8_...'}
             disabled={running}
           />
         </div>

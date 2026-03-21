@@ -353,11 +353,17 @@ def api_stop_pipeline():
 
 def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider: str):
     """Run the full pipeline on each dataset entry. Updates dataset_state."""
-    if provider == "openai":
+    if provider == "anthropic":
+        os.environ["ANTHROPIC_API_KEY"] = api_key or ""
+        os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("REPLICATE_API_TOKEN", None)
+    elif provider == "openai":
         os.environ["OPENAI_API_KEY"] = api_key or ""
+        os.environ.pop("ANTHROPIC_API_KEY", None)
         os.environ.pop("REPLICATE_API_TOKEN", None)
     else:
         os.environ["REPLICATE_API_TOKEN"] = api_key or ""
+        os.environ.pop("ANTHROPIC_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
 
     try:
@@ -798,11 +804,17 @@ def _run_vrf_b(p4_code: str) -> dict:
 def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts, api_key, provider):
     """Run the full pipeline in a background thread, updating pipeline_state."""
     # Set API key from request so pipeline.generate_p4_code can use it
-    if provider == "openai":
+    if provider == "anthropic":
+        os.environ["ANTHROPIC_API_KEY"] = api_key or ""
+        os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("REPLICATE_API_TOKEN", None)
+    elif provider == "openai":
         os.environ["OPENAI_API_KEY"] = api_key or ""
+        os.environ.pop("ANTHROPIC_API_KEY", None)
         os.environ.pop("REPLICATE_API_TOKEN", None)
     else:
         os.environ["REPLICATE_API_TOKEN"] = api_key or ""
+        os.environ.pop("ANTHROPIC_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
 
     try:
