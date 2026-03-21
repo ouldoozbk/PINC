@@ -21,6 +21,7 @@ import glob
 import json
 import subprocess
 import time
+import httpx
 
 # VRF A: Compilation
 from vrf_a_compiler import clean_p4_code, validate_p4_compilation, read_error_summary
@@ -370,8 +371,15 @@ IMPORTANT RULES:
 # LLM code generation
 def _generate_p4_code_replicate(prompt):
     """Generate P4 code using Replicate (e.g. Meta Llama 3). Set REPLICATE_API_TOKEN."""
+    token = os.getenv("REPLICATE_API_TOKEN")
+    if not token:
+        print("Error generating P4 code (Replicate): REPLICATE_API_TOKEN is not set")
+        return None
+
+    # Prefer Replicate SDK when available, but keep an HTTP fallback to avoid
+    # SDK import/runtime incompatibility issues (e.g. pydantic version mismatches).
     try:
-        import replicate
+        import replicate  # type: ignore
         output = replicate.run(
             "meta/meta-llama-3-8b-instruct",
             input={
@@ -384,16 +392,81 @@ def _generate_p4_code_replicate(prompt):
         if hasattr(output, "__iter__") and not isinstance(output, str):
             return "".join(str(chunk) for chunk in output)
         return str(output) if output is not None else None
+    except Exception as sdk_error:
+        print(f"Replicate SDK unavailable or failed ({sdk_error}); falling back to HTTP API.")
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "input": {
+                "prompt": prompt,
+                "system_prompt": SYSTEM_PROMPT,
+                "temperature": 0.7,
+                "max_tokens": 4000,
+            }
+        }
+
+        create_url = "https://api.replicate.com/v1/models/meta/meta-llama-3-8b-instruct/predictions"
+        create_resp = httpx.post(create_url, headers=headers, json=payload, timeout=60.0)
+        create_resp.raise_for_status()
+        pred = create_resp.json()
+
+        status = pred.get("status")
+        get_url = (pred.get("urls") or {}).get("get")
+        deadline = time.time() + 180
+
+        while status in {"starting", "processing"} and get_url and time.time() < deadline:
+            time.sleep(1.5)
+            poll_resp = httpx.get(get_url, headers=headers, timeout=60.0)
+            poll_resp.raise_for_status()
+            pred = poll_resp.json()
+            status = pred.get("status")
+
+        if status != "succeeded":
+            err = pred.get("error") or f"Replicate status={status}"
+            print(f"Error generating P4 code (Replicate HTTP): {err}")
+            return None
+
+        output = pred.get("output")
+        if isinstance(output, list):
+            return "".join(str(chunk) for chunk in output)
+        return str(output) if output is not None else None
     except Exception as e:
-        print(f"Error generating P4 code (Replicate): {e}")
+        print(f"Error generating P4 code (Replicate HTTP): {e}")
         return None
 
 
 def _generate_p4_code_openai(prompt):
     """Generate P4 code using OpenAI. Set OPENAI_API_KEY."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Error generating P4 code (OpenAI): OPENAI_API_KEY is not set")
+        return None
+
+    # First try the modern OpenAI client (v1+), then fall back to legacy API.
     try:
-        import openai
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        from openai import OpenAI  # type: ignore
+
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=4000,
+        )
+        return response.choices[0].message.content
+    except Exception:
+        pass
+
+    try:
+        import openai  # type: ignore
+        openai.api_key = api_key
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[

@@ -29,7 +29,7 @@ def _infer_behaviors_and_headers(intent: str) -> Tuple[List[dict], Set[str]]:
     Route the intent to the 9-bucket taxonomy via semantic embeddings, then
     build required_behaviors and headers_required from the matched buckets.
     """
-    matched_buckets, _ = route_intent_to_buckets(intent)
+    matched_buckets, _ = route_intent_to_buckets(intent, fallback_to_best=True)
 
     required_behaviors: List[dict] = []
     all_headers: Set[str] = set()
@@ -71,7 +71,7 @@ def generate_expected_behavior(intent: str, intent_id: Optional[str] = None) -> 
     if not intent or not intent.strip():
         intent = "basic packet forwarding"
 
-    matched_buckets, similarities = route_intent_to_buckets(intent)
+    matched_buckets, similarities = route_intent_to_buckets(intent, fallback_to_best=True)
     required_behaviors, headers_required = _infer_behaviors_and_headers(intent)
     prohibited_behaviors = _infer_prohibited(intent)
 

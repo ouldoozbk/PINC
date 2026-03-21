@@ -1064,7 +1064,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
         limit: Math.max(1, Math.min(100, parseInt(limit, 10) || 5)),
         api_key: apiKey,
         provider,
-        max_attempts: 1,
+        max_attempts: 3,
       }),
     })
     const data = await res.json()

@@ -4,3 +4,5 @@ httpx
 replicate
 sentence-transformers
 anthropic
+torch
+numpy
