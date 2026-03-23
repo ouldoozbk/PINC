@@ -29,7 +29,7 @@ const selectCls = `${inputCls} cursor-pointer`
 const btnCls = 'inline-flex items-center gap-1.5 font-semibold rounded-lg cursor-pointer transition-all duration-200'
 const btnPrimary = `${btnCls} px-5 py-2.5 text-sm bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed`
 const btnPrimarySm = `${btnCls} px-3 py-1.5 text-xs bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed`
-const btnSecondary = `${btnCls} px-3 py-1.5 text-xs bg-input text-body border border-edge hover:border-muted`
+const btnSecondary = `${btnCls} px-3 py-2.5 text-sm bg-input text-body border border-edge hover:border-muted disabled:opacity-50 disabled:cursor-not-allowed`
 const cardCls = 'bg-card border border-edge rounded-[10px] p-5 mb-4'
 const cardTitle = 'text-[0.85rem] font-semibold uppercase tracking-wider text-muted mb-3'
 const badgeBase = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-[0.72rem] font-semibold uppercase'
@@ -41,6 +41,26 @@ const jsonViewer =
 const codeViewer =
   'bg-code-bg border border-edge rounded-lg p-4 font-mono text-[0.8rem] leading-[1.7] max-h-[500px] overflow-auto whitespace-pre text-code-text'
 const spinnerCls = 'inline-block w-4 h-4 border-2 border-edge border-t-accent rounded-full animate-spin'
+
+// ─── Copy Button ──────────────────────────────────────────────────────────
+
+function CopyButton({ text, className = '' }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <button className={`${btnSecondary} ${className}`} onClick={copy} title="Copy to clipboard">
+      {copied ? '✓ Copied' : 'Copy'}
+    </button>
+  )
+}
 
 // ─── Score Bar ────────────────────────────────────────────────────────────
 
@@ -407,7 +427,10 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
           {/* Generated P4 Code */}
           {state?.p4_code && (
             <div className={cardCls}>
-              <div className={cardTitle}>Generated P4 Code</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className={cardTitle} style={{ marginBottom: 0 }}>Generated P4 Code</div>
+                <CopyButton text={state.p4_code} />
+              </div>
               <pre className={codeViewer}>{state.p4_code}</pre>
             </div>
           )}
@@ -427,13 +450,19 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           {state.expected_behavior && (
             <div className={cardCls}>
-              <div className={cardTitle}>Expected Behavior (VRF A.5)</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className={cardTitle} style={{ marginBottom: 0 }}>Expected Behavior (VRF A.5)</div>
+                <CopyButton text={pretty(state.expected_behavior)} />
+              </div>
               <pre className={jsonViewer}>{pretty(state.expected_behavior)}</pre>
             </div>
           )}
           {state.actual_behavior && (
             <div className={cardCls}>
-              <div className={cardTitle}>Actual Behavior (VRF A.5)</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className={cardTitle} style={{ marginBottom: 0 }}>Actual Behavior (VRF A.5)</div>
+                <CopyButton text={pretty(state.actual_behavior)} />
+              </div>
               <pre className={jsonViewer}>{pretty(state.actual_behavior)}</pre>
             </div>
           )}
@@ -1024,13 +1053,19 @@ function DatasetResultsTable({ results }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                       {r.expected_behavior && (
                         <div>
-                          <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Expected Behavior</p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-muted text-[0.72rem] uppercase tracking-wide">Expected Behavior</p>
+                            <CopyButton text={pretty(r.expected_behavior)} />
+                          </div>
                           <pre className={`${jsonViewer} max-h-50`}>{pretty(r.expected_behavior)}</pre>
                         </div>
                       )}
                       {r.p4_code && (
                         <div>
-                          <p className="text-muted text-[0.72rem] uppercase tracking-wide mb-1">Generated P4 Code</p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-muted text-[0.72rem] uppercase tracking-wide">Generated P4 Code</p>
+                            <CopyButton text={r.p4_code} />
+                          </div>
                           <pre className={`${codeViewer} max-h-50`}>{r.p4_code}</pre>
                         </div>
                       )}
@@ -1056,7 +1091,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
 
   const setField = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
-  const start = async () => {
+  const startWith = async (randomize = false) => {
     const res = await fetch(`${API}/api/run-dataset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1065,6 +1100,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
         api_key: apiKey,
         provider,
         max_attempts: 3,
+        randomize,
       }),
     })
     const data = await res.json()
@@ -1151,10 +1187,10 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
           />
         </div>
 
-        <div className="flex gap-2.5 items-center">
+        <div className="flex gap-2.5 items-center flex-wrap">
           <button
             className={btnPrimary}
-            onClick={start}
+            onClick={() => startWith(false)}
             disabled={running || !apiKey}
           >
             {running ? (
@@ -1164,6 +1200,14 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
             ) : (
               'Run Dataset'
             )}
+          </button>
+          <button
+            className={btnSecondary}
+            onClick={() => startWith(true)}
+            disabled={running || !apiKey}
+            title="Randomly shuffle dataset before selecting entries"
+          >
+            Run Random
           </button>
           {running && (
             <button
@@ -1179,7 +1223,43 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
       {/* Results summary */}
       {(status === 'done' || completed > 0) && (
         <div className={cardCls}>
-          <div className={cardTitle}>Results</div>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className={cardTitle} style={{ marginBottom: 0 }}>Results</div>
+            {results.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  className={btnSecondary}
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = 'dataset_results.json'
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                >
+                  Export All
+                </button>
+                <button
+                  className={btnSecondary}
+                  onClick={() => {
+                    const failed_results = results.filter(r => !r.passed)
+                    const blob = new Blob([JSON.stringify(failed_results, null, 2)], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = 'dataset_failed.json'
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                  disabled={failed === 0}
+                >
+                  Export Failed
+                </button>
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex items-center gap-2">
               <span className="text-muted text-[0.82rem]">Total:</span>

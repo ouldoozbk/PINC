@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import subprocess
 import sys
 import threading
@@ -105,6 +106,7 @@ class DatasetRunRequest(BaseModel):
     api_key: Optional[str] = None
     provider: Optional[str] = "replicate"
     max_attempts: int = 3  # Attempts per intent; retries use VRF A.5 feedback.
+    randomize: bool = False  # Shuffle dataset before selecting entries
 
 
 # Path to dataset.json (relative to project root)
@@ -511,6 +513,8 @@ def api_run_dataset(req: DatasetRunRequest):
             except json.JSONDecodeError:
                 continue
 
+    if req.randomize:
+        random.shuffle(entries)
     limit = max(1, min(req.limit, len(entries)))
     entries = entries[:limit]
 
