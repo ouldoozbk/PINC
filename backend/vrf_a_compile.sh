@@ -27,8 +27,9 @@ validate_p4() {
     local error_file="p4_validation_errors.txt"
     
     # Run p4c compiler using Docker with backend validation (install missing Boost library)
+    # --toJSON ir.json: dump the p4c IR after type-checking for VRF A.5 AST-based classification.
     docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace p4lang/p4c \
-      bash -c "apt update && apt install -y libboost-iostreams1.71.0 && p4c --target bmv2 --arch v1model $p4_file" 2>&1 | tee $error_file
+      bash -c "apt update && apt install -y libboost-iostreams1.71.0 && p4c --target bmv2 --arch v1model --toJSON ir.json $p4_file" 2>&1 | tee $error_file
     local validation_status=${PIPESTATUS[0]}
     
     if [ $validation_status -eq 0 ]; then

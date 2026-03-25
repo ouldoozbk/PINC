@@ -10,11 +10,7 @@ Scoring is a weighted combination of four components:
 
   edit_distance    (0.15) — Normalized Damerau-Levenshtein similarity applied ONLY to the
                             canonical sorted string of concrete header identifiers (e.g.
-                            "ethernet,ipv4,tcp").  Edit distance is deliberately restricted
-                            to these precise, enumerable tokens and NOT applied to the bucket
-                            classification, because intent routing (NLP embeddings) and code
-                            classification (structural AST signals) naturally diverge at the
-                            bucket level even for semantically correct programs.
+                            "ethernet,ipv4,tcp").
 
   control_blocks   (0.10) — Whether the required ingress/egress control blocks are present.
 
