@@ -3,23 +3,25 @@ VRF A.5: Semantic Comparator — Compare expected vs actual behavior JSON and co
 
 Scoring is a weighted combination of five components:
 
-  intent_code_similarity (0.35) — Direct cosine similarity between the raw intent text
+  intent_code_similarity (0.10) — Direct cosine similarity between the raw intent text
                                    embedding and the code description embedding (both via
-                                   all-MiniLM-L6-v2).  Primary signal: no intermediate bucket
-                                   step, same model and threshold as the intent router.
+                                   all-MiniLM-L6-v2).  Small tiebreaker signal: too noisy
+                                   to carry more weight (P4 identifier prose embeds far from
+                                   NL intents even when semantically correct).
 
-  bucket_recall          (0.25) — Recall-based: what fraction of expected buckets appear in the
-                                   actual code buckets?  Recall rather than Jaccard because code
-                                   legitimately implements extra buckets (e.g. error_detection
-                                   from a standard checksum block) that the intent never mentioned.
+  bucket_recall          (0.60) — Recall-based: what fraction of expected buckets appear in the
+                                   actual code buckets?  Primary driver now that LLM classifier
+                                   (claude-haiku-4-5-20251001) reliably classifies code buckets.
+                                   Recall rather than Jaccard because code legitimately implements
+                                   extra buckets (e.g. error_detection from a checksum block).
 
-  header_similarity      (0.15) — Normalized edit distance (NED via difflib.SequenceMatcher)
+  header_similarity      (0.10) — Normalized edit distance (NED via difflib.SequenceMatcher)
                                    between the sorted expected header list and the sorted actual
                                    header list.  Measures protocol-stack structural match.
 
   control_blocks         (0.10) — Whether the required ingress/egress control blocks are present.
 
-  prohibited_check       (0.15) — Hard penalty if the code contains any prohibited behavior
+  prohibited_check       (0.10) — Hard penalty if the code contains any prohibited behavior
                                    patterns named in the intent spec.
 """
 
@@ -34,11 +36,11 @@ from vrf_a5_semantic_router import embed_text
 
 # Weights (must sum to 1.0)
 WEIGHTS: Dict[str, float] = {
-    "intent_code_similarity": 0.35,
-    "bucket_recall":          0.25,
-    "header_similarity":      0.15,
+    "intent_code_similarity": 0.10,
+    "bucket_recall":          0.60,
+    "header_similarity":      0.10,
     "control_blocks":         0.10,
-    "prohibited_check":       0.15,
+    "prohibited_check":       0.10,
 }
 
 

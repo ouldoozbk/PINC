@@ -23,7 +23,11 @@ You **do not need Google Colab**. The notebooks were developed in Colab but run 
 
 This runs the full pipeline with a web UI.
 
-1. **Prerequisites:** Python 3, Docker Desktop (running), an OpenAI or Replicate API key.
+1. **Prerequisites:**
+   - Python 3.9+
+   - **Docker Desktop** (must be running) — required for **VRF A** (p4c compilation) and **VRF A.5** (AST-based intent validation). VRF A compiles the generated P4 code inside a `p4lang/p4c` container and writes `ir.json` (the p4c JSON IR). VRF A.5 reads `ir.json` to classify the code into the 9-bucket taxonomy; it will raise an error if Docker has not run.
+   - An OpenAI or Replicate API key.
+
 2. **Setup:**
    ```bash
    cd backend
@@ -42,6 +46,8 @@ This runs the full pipeline with a web UI.
    npm run dev
    ```
 5. Open [http://localhost:3000](http://localhost:3000) and use the UI to enter an intent and run the pipeline.
+
+   The pipeline order is: **VRF A** (p4c compile via Docker → writes `ir.json`) → **VRF A.5** (reads `ir.json`, validates intent alignment) → **VRF B** (functional tests, optional).
 
    See `backend/README.md` for details on VRF stages, YANG support, and troubleshooting.
 

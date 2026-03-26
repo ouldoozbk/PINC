@@ -198,14 +198,49 @@ def _classify_buckets_llm(features: dict, api_key: str = "") -> Set[str]:
 
     BUCKET_DEFINITIONS = {
         "forwarding":       "Routes packets based on IP destination, sets output port, uses LPM or exact match tables on dstAddr.",
-        "encapsulation":    "Adds or removes tunnel headers (GRE, VXLAN, GENEVE, IP-in-IP, MPLS). Wraps inner packets in outer headers for overlay networking, VM connectivity across data centers, or WAN tunneling. Uses add_header / remove_header / setValid / setInvalid on outer headers.",
-        "header_rewriting": "Modifies existing header field values without adding or removing headers. TTL decrement, MAC rewrite, DSCP marking, NAT address translation.",
+        "encapsulation":    (
+            "Encapsulates packets by adding outer tunnel headers such as GRE, VXLAN, "
+            "GENEVE, IP-in-IP, or MPLS. Wraps inner packets inside an outer IP or "
+            "Ethernet header for tunneling traffic across networks. Used for overlay "
+            "networking, connecting virtual machines across data centers, and "
+            "software-defined networking fabrics. Decapsulates by removing outer "
+            "headers at tunnel endpoints. Adds and removes headers, sets valid bits, "
+            "configures tunnel source and destination addresses. Does not involve "
+            "encryption or security authentication — use vpn_crypto for secure tunnels."
+        ),
+        "header_rewriting": (
+            "Modifies existing header field values without adding or removing "
+            "headers. Includes TTL decrement, MAC address rewriting, DSCP marking, "
+            "NAT address and port translation. Also covers extracting flow "
+            "identifiers into metadata fields — copying 5-tuple fields (source IP, "
+            "destination IP, source port, destination port, protocol) from packet "
+            "headers into metadata for flow tracking, classification, or export. "
+            "Reads header fields and stores them as metadata for downstream "
+            "processing. Includes field copying, masking, and metadata population."
+        ),
         "filtering":        "Drops or permits packets based on ACL rules, firewall policy, or access control tables. Uses mark_to_drop. Table names include acl, firewall, filter.",
-        "monitoring":       "Collects traffic statistics or mirrors packets. Uses counter/meter/register externs, clone primitives, INT headers, or digest calls.",
+        "monitoring":       (
+            "Collects traffic statistics or mirrors packets for analysis. Uses "
+            "counter, meter, or register externs. Clones or mirrors packets via "
+            "clone primitives. Sends flow metadata to the control plane via digest. "
+            "Implements In-band Network Telemetry (INT) using int_* headers. "
+            "Marks packets with congestion signals such as ECN (Explicit Congestion "
+            "Notification) codepoints based on queue depth or delay. Performs "
+            "queue-based traffic monitoring and congestion detection."
+        ),
         "label_tag":        "Pushes or pops MPLS labels or VLAN tags. Uses mpls_t or vlan_tag_t headers, push/pop actions, label swapping for traffic engineering.",
         "group_service":    "Replicates packets to multiple destinations. Sets mcast_grp, uses multicast group tables, one-to-many delivery.",
         "error_detection":  "Verifies or recomputes checksums. Uses MyVerifyChecksum / MyComputeChecksum controls, verify_checksum / update_checksum calls.",
-        "vpn_crypto":       "Processes IPsec/VPN headers (esp_t, ah_t). Table names include ipsec, vpn, crypto. Encrypts or authenticates tunnel traffic.",
+        "vpn_crypto":       (
+            "Processes IPsec or VPN traffic for secure communication. Handles "
+            "esp_t (Encapsulating Security Payload) or ah_t (Authentication Header) "
+            "headers. Table names include ipsec, vpn, or crypto. Establishes secure "
+            "overlay networks between sites using encrypted tunnels. Implements "
+            "site-to-site VPN, secure WAN connectivity, or encrypted overlay "
+            "networking where security and authentication are the primary concern "
+            "rather than plain tunneling. Differentiates from plain encapsulation "
+            "by the presence of security policy, authentication, or encryption intent."
+        ),
     }
 
     bucket_block = "\n".join(
