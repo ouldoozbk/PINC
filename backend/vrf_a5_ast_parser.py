@@ -1,8 +1,9 @@
 """
 VRF A.5: P4 AST Parser — Step 1 of AST-based bucket classification.
 
-Reads the p4c JSON IR (--toJSON ir.json) and walks the node tree to extract
-typed signal streams. Input is always a valid, type-checked IR from VRF A.
+Reads the p4c JSON IR (ir.json written by the p4test --toJSON step in vrf_a_compile.sh)
+and walks the node tree to extract typed signal streams.  Input is always a valid,
+type-checked IR from VRF A.
 
 p4c JSON IR structure
 ---------------------
@@ -14,14 +15,20 @@ Node types extracted
   Type_Header          → header_type
   P4Control            → control_name
   P4Table              → table_name, table_key (from key block)
-  P4Action             → action_call, action_body
-  MethodCallStatement  → action_call
+  P4Action             → action_name (declaration name)
+  MethodCallStatement  → action_call (method call callees)
   AssignmentStatement  → action_body (LHS)
   Declaration_Instance → extern_call (counter/meter/register)
   MethodCallExpression → extern_call (clone/digest/etc.)
 
-Signal dict keys: header_type, control_name, table_name, table_key,
-                  action_call, action_body, extern_call  — all List[str]
+Signal dict keys (all List[str])
+---------------------------------
+  header_type, control_name, table_name, table_key,
+  action_name, action_call, action_body, extern_call
+
+Public feature dict keys (from signals_to_features / features_from_ir_file)
+-----------------------------------------------------------------------------
+  header_names, action_ops, extern_types, table_key_fields, action_names, control_names
 
 Ref: https://github.com/p4lang/p4c/blob/main/ir/ir.def
 """
@@ -132,8 +139,8 @@ def _extract_p4_table(node: dict, signals: SignalDict) -> None:
 def _extract_p4_action(node: dict, signals: SignalDict) -> None:
     name = node.get("name", "")
     if name:
-        # Action name itself is a useful signal (e.g. "ipv4_forward", "push_vlan").
-        signals["action_call"].append(name)
+        # Action declaration name (e.g. "ipv4_forward", "push_vlan") — distinct from method calls.
+        signals["action_name"].append(name)
     # Statements are visited by _walk when it encounters them inside the body.
 
 
@@ -208,19 +215,18 @@ def extract_signals_from_ir(ir: dict) -> SignalDict:
     Walk a p4c JSON IR dict and return the typed signal dict.
 
     Args:
-        ir: Parsed JSON object from ir.json (output of p4c --toJSON).
+        ir: Parsed JSON object from ir.json (output of p4test --toJSON).
 
     Returns:
         SignalDict with keys: header_type, control_name, table_name, table_key,
-        action_call, action_body, extern_call.  Values are lists of string tokens
-        (possibly with duplicates — the classifier uses re.search so duplicates
-        are harmless).
+        action_name, action_call, action_body, extern_call.
     """
     signals: SignalDict = {
         "header_type":  [],
         "control_name": [],
         "table_name":   [],
         "table_key":    [],
+        "action_name":  [],
         "action_call":  [],
         "action_body":  [],
         "extern_call":  [],
@@ -235,13 +241,39 @@ def extract_signals_from_ir(ir: dict) -> SignalDict:
     return signals
 
 
+def signals_to_features(signals: SignalDict) -> dict:
+    """
+    Reshape a SignalDict into a clean feature dict suitable for natural-language
+    serialisation and embedding-based bucket classification.
+
+    Returns:
+        dict with keys: header_names, action_ops, extern_types,
+        table_key_fields, action_names, control_names.
+    """
+    def dedup(lst: list) -> list:
+        return list(dict.fromkeys(lst))
+
+    ops = dedup(signals["action_call"])
+    if signals["action_body"]:
+        ops = list(dict.fromkeys(["assign"] + ops))
+
+    return {
+        "header_names":     dedup(signals["header_type"]),
+        "action_ops":       ops,
+        "extern_types":     dedup(signals["extern_call"]),
+        "table_key_fields": dedup(signals["table_key"]),
+        "action_names":     dedup(signals["action_name"]),
+        "control_names":    dedup(signals["control_name"]),
+    }
+
+
 # Public API
 def load_ir(path: str = "ir.json") -> dict:
     """
-    Load the p4c JSON IR written by VRF A.
+    Load the p4c JSON IR written by the p4test --toJSON step in vrf_a_compile.sh.
 
     Raises:
-        RuntimeError: if ir.json is missing (VRF A Docker run did not execute)
+        RuntimeError: if ir.json is missing (VRF A did not run or p4test step failed)
                       or cannot be parsed as JSON.
     """
     try:
@@ -250,9 +282,8 @@ def load_ir(path: str = "ir.json") -> dict:
     except FileNotFoundError:
         raise RuntimeError(
             f"p4c IR file not found at {path!r}. "
-            "VRF A.5 requires p4c to run via Docker (vrf_a_compile.sh) before "
-            "bucket classification. Ensure Docker is running and VRF A has "
-            "completed successfully."
+            "VRF A.5 requires the p4test --toJSON step in vrf_a_compile.sh to have "
+            "completed successfully. Ensure Docker is running and VRF A has passed."
         )
     except json.JSONDecodeError as exc:
         raise RuntimeError(
@@ -269,6 +300,16 @@ def signals_from_ir_file(path: str = "ir.json") -> SignalDict:
         RuntimeError: if ir.json is missing or malformed (see load_ir).
     """
     return extract_signals_from_ir(load_ir(path))
+
+
+def features_from_ir_file(path: str = "ir.json") -> dict:
+    """
+    Load ir.json and return the normalised feature dict for embedding classification.
+
+    Raises:
+        RuntimeError: if the file is missing or malformed (see load_ir).
+    """
+    return signals_to_features(signals_from_ir_file(path))
 
 
 # CLI smoke-test  (python vrf_a5_ast_parser.py [ir.json])

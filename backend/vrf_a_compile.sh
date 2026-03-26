@@ -2,6 +2,8 @@
 
 # Clean up per-run files (NOT error_summary.txt — that accumulates across attempts
 # and is cleaned by the Python pipeline at startup via cleanup_files()).
+# Remove ir.json whether it is a file or a stale directory from a previous failed run.
+rm -rf ir.json
 rm -f validation_status.txt p4_validation_errors.txt temp_errors.txt
 
 # Function to clean up P4 code (remove markdown formatting)
@@ -26,15 +28,32 @@ validate_p4() {
     # Create a temporary file for error output
     local error_file="p4_validation_errors.txt"
     
-    # Run p4c compiler using Docker with backend validation (install missing Boost library)
-    # --toJSON ir.json: dump the p4c IR after type-checking for VRF A.5 AST-based classification.
+    # Run p4c compiler using Docker with backend validation (install missing Boost library).
+    # This produces test.json (BMV2) as the primary compile artifact.
     docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace p4lang/p4c \
-      bash -c "apt update && apt install -y libboost-iostreams1.71.0 && p4c --target bmv2 --arch v1model --toJSON ir.json $p4_file" 2>&1 | tee $error_file
+      bash -c "apt update && apt install -y libboost-iostreams1.71.0 && p4c --target bmv2 --arch v1model $p4_file" 2>&1 | tee $error_file
     local validation_status=${PIPESTATUS[0]}
-    
+
     if [ $validation_status -eq 0 ]; then
         echo "✅ Validation successful: $p4_file"
         echo "SUCCESS" > validation_status.txt
+
+        # Produce ir.json for VRF A.5 AST-based bucket classification.
+        # p4test runs the full frontend + midend without a backend and supports --toJSON.
+        echo "Generating IR JSON for VRF A.5 (p4test --toJSON)..."
+        local ir_error_file="p4test_ir_errors.txt"
+        docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace p4lang/p4c \
+          bash -c "apt update -qq && apt install -y -qq libboost-iostreams1.71.0 2>/dev/null && p4test --toJSON ir.json $p4_file" \
+          > "$ir_error_file" 2>&1
+        if [ -f "ir.json" ]; then
+            echo "✅ IR JSON generated: ir.json"
+            rm -f "$ir_error_file"
+        else
+            echo "⚠️  p4test --toJSON did not produce ir.json — output:"
+            cat "$ir_error_file"
+            echo "⚠️  VRF A.5 bucket classification will be skipped for this attempt."
+        fi
+
         return 0
     else
         echo "❌ Validation failed: $p4_file"
