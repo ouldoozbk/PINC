@@ -9,24 +9,12 @@ SIMILARITY_THRESHOLD are returned as matched.
 
 from __future__ import annotations
 
-import re
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
-# Similarity threshold from the proposal (Section 2.2).
-SIMILARITY_THRESHOLD = 0.8
-
-# Lightweight keyword rules used when semantic model imports are unavailable.
-_KEYWORD_RULES: Dict[str, Tuple[str, ...]] = {
-    "forwarding": ("forward", "route", "routing", "switch", "next hop", "nexthop", "ecmp", "multipath"),
-    "encapsulation": ("encapsulat", "encap", "tunnel", "vxlan", "gre", "ip-in-ip", "ip in ip"),
-    "header_rewriting": ("rewrite", "nat", "masquerad", "translate", "source ip", "dst ip", "tcp src", "tcp dst"),
-    "filtering": ("filter", "firewall", "acl", "drop", "mark_to_drop", "block", "deny"),
-    "monitoring": ("monitor", "telemetry", "clone", "mirror", "counter", "meter", "int", "timestamp"),
-    "label_tag": ("vlan", "mpls", "802.1q", "vlan tag", "label"),
-    "group_service": ("multicast", "broadcast", "replicat", "set_mgid", "anycast"),
-    "error_detection": ("checksum", "verify_checksum", "update_checksum", "integrity", "crc"),
-    "vpn_crypto": ("ipsec", "vpn", "crypto", "esp", "ah", "tls", "ike"),
-}
+# Unified similarity threshold for both intent routing and code feature classification.
+# Calibrated from dataset: correct-match intent-to-template cosine scores range 0.37–0.71,
+# so 0.8 (original) was never reachable. 0.50 separates signal from noise at observed data.
+SIMILARITY_THRESHOLD = 0.50
 
 # Canonical intent template for each of the nine buckets.
 # Written to be paraphrase-rich so the embedding captures the full semantic scope.
@@ -37,9 +25,13 @@ BUCKET_TEMPLATES: Dict[str, str] = {
         "next-hop resolution, and multipath or ECMP load balancing across multiple paths."
     ),
     "encapsulation": (
-        "Add or remove entire protocol headers to encapsulate or decapsulate packets "
-        "inside tunnels such as VXLAN, GRE, or IP-in-IP overlays using add_header "
-        "and remove_header operations."
+        "Encapsulates packets by adding outer tunnel headers such as GRE, VXLAN, "
+        "GENEVE, IP-in-IP, or MPLS. Wraps inner packets inside an outer IP or "
+        "Ethernet header for tunneling traffic across networks. Used for overlay "
+        "networking, connecting virtual machines across data centers, software-defined "
+        "networking fabrics, and WAN tunneling. Decapsulates by removing outer headers "
+        "at tunnel endpoints. Adds and removes headers, sets valid bits, configures "
+        "tunnel source and destination addresses."
     ),
     "header_rewriting": (
         "Modify individual packet header field values such as source and destination "
@@ -122,6 +114,14 @@ def _get_template_embeddings() -> Dict[str, object]:
     return _template_embeddings
 
 
+def embed_text(text: str):
+    """
+    Embed *text* with all-MiniLM-L6-v2 and return a L2-normalised numpy vector.
+    Reuses the cached model — no second model load.
+    """
+    return _load_model().encode(text, normalize_embeddings=True)
+
+
 # Public API
 def route_intent_to_buckets(
     intent: str,
@@ -147,25 +147,14 @@ def route_intent_to_buckets(
     similarities: Dict[str, float] = {bucket: 0.0 for bucket in BUCKET_TEMPLATES}
     matched = set()
 
-    # Primary path: semantic similarity.
-    try:
-        model = _load_model()
-        intent_vec = model.encode([intent], convert_to_numpy=True, normalize_embeddings=True)[0]
+    model = _load_model()
+    intent_vec = model.encode([intent], convert_to_numpy=True, normalize_embeddings=True)[0]
 
-        template_embeddings = _get_template_embeddings()
-        for bucket, tmpl_vec in template_embeddings.items():
-            # Vectors are L2-normalised, so dot product == cosine similarity.
-            similarities[bucket] = float(np.dot(intent_vec, tmpl_vec))
-        matched = {bucket for bucket, score in similarities.items() if score >= threshold}
-    except Exception:
-        # Fallback to deterministic keyword heuristics when model dependencies are missing
-        # or model load fails for any reason.
-        lower_intent = intent.lower()
-        keywords = set(re.findall(r"[a-z0-9_\\.]+", lower_intent))
-
-        for bucket, patterns in _KEYWORD_RULES.items():
-            if any(p in lower_intent for p in patterns) or any(any(k.startswith(p.rstrip("*")) for k in keywords) for p in patterns):
-                matched.add(bucket)
+    template_embeddings = _get_template_embeddings()
+    for bucket, tmpl_vec in template_embeddings.items():
+        # Vectors are L2-normalised, so dot product == cosine similarity.
+        similarities[bucket] = float(np.dot(intent_vec, tmpl_vec))
+    matched = {bucket for bucket, score in similarities.items() if score >= threshold}
 
     if not matched and fallback_to_best and similarities:
         # Preserve old behavior: choose the highest-scoring bucket for compatibility.

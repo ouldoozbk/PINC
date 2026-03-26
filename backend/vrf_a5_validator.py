@@ -25,6 +25,7 @@ def validate_intent(
     expected_behavior_path: str = "expected_behavior.json",
     actual_behavior_path: str = "actual_behavior.json",
     save_actual: bool = True,
+    api_key: str = "",
 ) -> Tuple[str, float, dict, Optional[str]]:
     """
     Run VRF A.5: extract actual behavior from P4 code, compare to expected, return result.
@@ -43,7 +44,7 @@ def validate_intent(
         # No expected spec: treat as pass (skip intent validation)
         return "PASS", 1.0, {}, None
 
-    actual_json = extract_behavior_from_code(p4_code)
+    actual_json = extract_behavior_from_code(p4_code, api_key=api_key)
     if save_actual:
         save_actual_behavior(actual_json, actual_behavior_path)
 
@@ -64,6 +65,7 @@ def run_vrf_a5(
     p4_code: str,
     expected_behavior_path: str = "expected_behavior.json",
     actual_behavior_path: str = "actual_behavior.json",
+    api_key: str = "",
 ) -> Tuple[bool, Optional[str], float, dict]:
     """
     Convenience: run VRF A.5 and return (passed, feedback_for_llm, score, detailed_scores).
@@ -74,6 +76,7 @@ def run_vrf_a5(
         expected_behavior_path=expected_behavior_path,
         actual_behavior_path=actual_behavior_path,
         save_actual=True,
+        api_key=api_key,
     )
     passed = verdict in ("PASS", "PARTIAL")
     return passed, feedback, score, detailed

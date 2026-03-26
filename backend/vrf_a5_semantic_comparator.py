@@ -1,99 +1,61 @@
 """
 VRF A.5: Semantic Comparator — Compare expected vs actual behavior JSON and compute match score.
 
-Scoring is a weighted combination of four components:
+Scoring is a weighted combination of five components:
 
-  bucket_recall    (0.50) — Recall-based: what fraction of expected buckets appear in the
-                            actual code buckets?  Recall rather than Jaccard because code
-                            legitimately implements extra buckets (e.g. error_detection from
-                            a standard checksum block) that the intent never mentioned.
+  intent_code_similarity (0.35) — Direct cosine similarity between the raw intent text
+                                   embedding and the code description embedding (both via
+                                   all-MiniLM-L6-v2).  Primary signal: no intermediate bucket
+                                   step, same model and threshold as the intent router.
 
-  edit_distance    (0.15) — Normalized Damerau-Levenshtein similarity applied ONLY to the
-                            canonical sorted string of concrete header identifiers (e.g.
-                            "ethernet,ipv4,tcp").
+  bucket_recall          (0.25) — Recall-based: what fraction of expected buckets appear in the
+                                   actual code buckets?  Recall rather than Jaccard because code
+                                   legitimately implements extra buckets (e.g. error_detection
+                                   from a standard checksum block) that the intent never mentioned.
 
-  control_blocks   (0.10) — Whether the required ingress/egress control blocks are present.
+  header_similarity      (0.15) — Normalized edit distance (NED via difflib.SequenceMatcher)
+                                   between the sorted expected header list and the sorted actual
+                                   header list.  Measures protocol-stack structural match.
 
-  prohibited_check (0.25) — Hard penalty if the code contains any prohibited behavior patterns
-                            named in the intent spec. Weighted higher than a soft mismatch
-                            because prohibited violations are security-critical.
+  control_blocks         (0.10) — Whether the required ingress/egress control blocks are present.
+
+  prohibited_check       (0.15) — Hard penalty if the code contains any prohibited behavior
+                                   patterns named in the intent spec.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, Optional, Set, Tuple
+import difflib
+import numpy as np
+from typing import Dict, Optional, Set, Tuple
+
+from vrf_a5_semantic_router import embed_text
 
 
 # Weights (must sum to 1.0)
 WEIGHTS: Dict[str, float] = {
-    "bucket_recall":    0.50,
-    "edit_distance":    0.15,
-    "control_blocks":   0.10,
-    "prohibited_check": 0.25,
+    "intent_code_similarity": 0.35,
+    "bucket_recall":          0.25,
+    "header_similarity":      0.15,
+    "control_blocks":         0.10,
+    "prohibited_check":       0.15,
 }
 
 
-# Normalized Damerau-Levenshtein (pure Python, no extra dependencies)
-# Uses the Optimal String Alignment variant.
-def _damerau_levenshtein(s1: str, s2: str) -> int:
+# Helpers
+def _header_string(headers) -> str:
+    """Canonical sorted, lowercased, comma-joined header string for NED comparison."""
+    return ", ".join(sorted(h.lower() for h in (headers or [])))
+
+
+def _ned_similarity(a: str, b: str) -> float:
     """
-    Compute the Damerau-Levenshtein (OSA) edit distance between two strings.
-    Considers insertions, deletions, substitutions, and adjacent transpositions.
+    Normalized edit distance via difflib.SequenceMatcher.
+    Returns 1.0 when both strings are empty (both have no headers — full match).
     """
-    len1, len2 = len(s1), len(s2)
-    if len1 == 0:
-        return len2
-    if len2 == 0:
-        return len1
-
-    dp = [[0] * (len2 + 1) for _ in range(len1 + 1)]
-    for i in range(len1 + 1):
-        dp[i][0] = i
-    for j in range(len2 + 1):
-        dp[0][j] = j
-
-    for i in range(1, len1 + 1):
-        for j in range(1, len2 + 1):
-            cost = 0 if s1[i - 1] == s2[j - 1] else 1
-            dp[i][j] = min(
-                dp[i - 1][j] + 1,           # deletion
-                dp[i][j - 1] + 1,           # insertion
-                dp[i - 1][j - 1] + cost,    # substitution
-            )
-            # Transposition of adjacent characters
-            if i > 1 and j > 1 and s1[i - 1] == s2[j - 2] and s1[i - 2] == s2[j - 1]:
-                dp[i][j] = min(dp[i][j], dp[i - 2][j - 2] + cost)
-
-    return dp[len1][len2]
-
-
-def _ned_similarity(s1: str, s2: str) -> float:
-    """
-    Normalized edit distance similarity in [0, 1]:
-        similarity = 1 - DL(s1, s2) / max(|s1|, |s2|)
-    Returns 1.0 when both strings are empty (nothing to differ on).
-    """
-    if not s1 and not s2:
+    if not a and not b:
         return 1.0
-    denom = max(len(s1), len(s2))
-    return 1.0 - _damerau_levenshtein(s1, s2) / denom
-
-
-# Canonical string builder for concrete sensitive fields
-def _canonical_header_string(headers: Iterable[str]) -> str:
-    """
-    Produce a stable, comparable string from a collection of header identifiers.
-    Strips common suffixes (_t) and all underscores, lowercases, sorts, then joins.
-
-    Example:
-        ["ipv4_t", "Ethernet_T", "vlan_tag_t"]  →  "ethernet,ipv4,vlantag"
-    """
-    normalized = sorted(
-        h.lower().replace("_t", "").replace("_", "")
-        for h in headers
-        if h
-    )
-    return ",".join(normalized)
+    return difflib.SequenceMatcher(None, a, b).ratio()
 
 
 # Scoring
@@ -104,19 +66,19 @@ def compute_intent_match_score(
     """
     Compare expected vs actual behavior and return (final_score, detailed_scores).
     Score is in [0.0, 1.0]; higher is better.
-
-    Reads the *buckets* field (list of 9-taxonomy bucket names) from both JSONs.
-    Falls back gracefully to *required_behaviors* behavior_ids if the buckets
-    field is absent (backward compatibility with pre-router expected specs).
     """
-    scores: Dict[str, float] = {
-        "bucket_recall":    0.0,
-        "edit_distance":    0.0,
-        "control_blocks":   0.0,
-        "prohibited_check": 0.0,
-    }
+    scores: Dict[str, float] = {k: 0.0 for k in WEIGHTS}
 
-    # 1. Bucket recall
+    # 1. Intent ↔ code similarity
+    #    Direct cosine similarity between raw_intent embedding and code_description embedding.
+    raw_intent = (expected_json.get("raw_intent") or "").strip()
+    code_desc  = (actual_json.get("code_description") or "").strip()
+    if raw_intent and code_desc:
+        iv = embed_text(raw_intent)
+        cv = embed_text(code_desc)
+        scores["intent_code_similarity"] = float(np.dot(iv, cv))
+
+    # 2. Bucket recall
     #    Recall = |expected ∩ actual| / |expected|
     #    A superset actual (code does more than asked) does not penalize.
     expected_buckets: Set[str] = set(expected_json.get("buckets") or [])
@@ -145,22 +107,14 @@ def compute_intent_match_score(
         covered = len(expected_buckets & actual_buckets)
         scores["bucket_recall"] = covered / len(expected_buckets)
     else:
-        # If the expected spec has no declared bucket signal, do not grant
-        # perfect recall by default; this avoids silent false-positives.
         scores["bucket_recall"] = 0.0 if expected_has_bucket_key else 0.0
 
-    # 2. Edit distance on concrete header identifiers
-    #    Applied ONLY to these enumerable tokens, not to bucket names,
-    #    because bucket classification can legitimately diverge between
-    #    NLP intent routing and AST code extraction.
-    expected_hdrs = expected_json.get("headers_required") or []
-    actual_hdrs   = actual_json.get("headers_defined")    or []
+    # 3. Header similarity — NED on sorted header sets
+    expected_headers = _header_string(expected_json.get("headers_required", []))
+    actual_headers   = _header_string(actual_json.get("headers_defined", []))
+    scores["header_similarity"] = _ned_similarity(expected_headers, actual_headers)
 
-    exp_canonical = _canonical_header_string(expected_hdrs)
-    act_canonical = _canonical_header_string(actual_hdrs)
-    scores["edit_distance"] = _ned_similarity(exp_canonical, act_canonical)
-
-    # 3. Control blocks
+    # 4. Control blocks
     control_blocks_exp = expected_json.get("control_blocks") or {}
 
     ingress_spec = control_blocks_exp.get("ingress") or {}
@@ -190,7 +144,7 @@ def compute_intent_match_score(
         )
         scores["control_blocks"] = found / num_required
 
-    # 4. Prohibited behaviors — hard penalty
+    # 5. Prohibited behaviors — hard penalty
     prohibited = set(expected_json.get("prohibited_behaviors") or [])
     suspicious  = set(actual_json.get("suspicious_patterns")   or [])
     scores["prohibited_check"] = 0.0 if (prohibited & suspicious) else 1.0
@@ -218,6 +172,18 @@ def generate_intent_mismatch_feedback(
         "match_score": final_score,
         "issues": [],
     }
+
+    # Low direct similarity
+    if detailed_scores.get("intent_code_similarity", 1.0) < 0.4:
+        feedback["issues"].append({
+            "type": "LOW_SEMANTIC_SIMILARITY",
+            "severity": "CRITICAL",
+            "details": (
+                f"Direct intent-to-code similarity is {detailed_scores['intent_code_similarity']:.2f}. "
+                "The generated code does not semantically match the intent."
+            ),
+            "suggestion": "Ensure the code implements the behavior described in the intent.",
+        })
 
     # Missing buckets
     expected_buckets: Set[str] = set(expected_json.get("buckets") or [])
@@ -256,23 +222,6 @@ def generate_intent_mismatch_feedback(
             "severity": "CRITICAL",
             "details": f"Code contains prohibited patterns: {sorted(violations)}",
             "suggestion": "Remove or modify the logic that triggers these patterns.",
-        })
-
-    # Header mismatch — also report the edit distance for transparency
-    expected_hdrs = set(expected_json.get("headers_required") or [])
-    actual_hdrs_raw = actual_json.get("headers_defined") or []
-    actual_hdrs = set(h.replace("_t", "") for h in actual_hdrs_raw)
-    missing_headers = expected_hdrs - actual_hdrs
-    ed_score = detailed_scores.get("edit_distance", 1.0)
-    if missing_headers and ed_score < 1.0:
-        feedback["issues"].append({
-            "type": "MISSING_HEADERS",
-            "severity": "HIGH",
-            "details": (
-                f"Expected headers not defined: {sorted(missing_headers)}  "
-                f"(header edit-distance similarity: {ed_score:.2%})"
-            ),
-            "suggestion": "Define and parse the required header types in the parser.",
         })
 
     return feedback

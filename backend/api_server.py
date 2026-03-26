@@ -48,13 +48,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from vrf_a_compiler import clean_p4_code, validate_p4_compilation, read_error_summary
 from vrf_a5_intent_parser import generate_expected_behavior, save_expected_behavior
-from vrf_a5_behavior_extractor import extract_behavior_from_code, save_actual_behavior
+from vrf_a5_behavior_extractor import extract_behavior_from_code
 from vrf_a5_semantic_comparator import (
     compute_intent_match_score,
     generate_intent_mismatch_feedback,
     format_feedback_for_llm,
 )
-from vrf_a5_validator import run_vrf_a5, validate_intent
+from vrf_a5_validator import run_vrf_a5
 
 
 # Pydantic request models
@@ -412,6 +412,7 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
             last_score = 0.0
             last_feedback = None
             last_detailed = None
+            last_stage = "vrf_a"  # tracks which stage last failed (vrf_a or vrf_a5)
 
             for attempt in range(1, max_attempts + 1):
                 if _dataset_stop.is_set():
@@ -434,12 +435,21 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                 with open("test.p4", "w") as f:
                     f.write(cleaned)
 
-                # VRF A.5 only: skip compilation, validate intent alignment directly
+                # VRF A: Compile to produce ir.json (required by VRF A.5 AST classifier)
+                compile_ok, compile_errors = validate_p4_compilation(cleaned, "test.p4", attempt)
+                if not compile_ok:
+                    last_stage = "vrf_a"
+                    last_feedback = compile_errors or "P4 compilation failed — no IR available for intent validation."
+                    continue
+
+                # VRF A.5: Intent validation using AST-based bucket classification
                 passed, feedback, score, detailed = run_vrf_a5(
                     cleaned,
                     expected_behavior_path="expected_behavior.json",
                     actual_behavior_path="actual_behavior.json",
+                    api_key=api_key if provider == "anthropic" else "",
                 )
+                last_stage = "vrf_a5"
                 last_score = score
                 last_feedback = feedback
                 last_detailed = detailed
@@ -465,7 +475,7 @@ def _run_dataset_thread(entries: list, max_attempts: int, api_key: str, provider
                     "intent": intent[:100],
                     "label": label,
                     "passed": False,
-                    "stage": "vrf_a5",
+                    "stage": last_stage,
                     "match_score": last_score,
                     "detailed_scores": last_detailed,
                     "error": str(fail_reason)[:200] if fail_reason else "Unknown",
@@ -902,6 +912,7 @@ def _run_pipeline_thread(intent, yang_model, yang_data, max_attempts, api_key, p
                 cleaned,
                 expected_behavior_path="expected_behavior.json",
                 actual_behavior_path="actual_behavior.json",
+                api_key=api_key if provider == "anthropic" else "",
             )
 
             # Read actual behavior
