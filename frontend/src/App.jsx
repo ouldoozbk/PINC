@@ -156,7 +156,6 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
   const intent = form.intent
   const yangModel = form.yangModel
   const yangData = form.yangData
-  const apiKey = form.apiKey
   const provider = form.provider
   const maxAttempts = form.maxAttempts
   const state = pipelineState
@@ -171,7 +170,6 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
         intent,
         yang_model: yangModel,
         yang_data: yangData,
-        api_key: apiKey,
         provider,
         max_attempts: maxAttempts,
       }),
@@ -262,19 +260,6 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
 
             <div className="mb-4">
               <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
-                API Key *
-              </label>
-              <input
-                className={inputCls}
-                type="password"
-                value={apiKey}
-                onChange={e => setField('apiKey', e.target.value)}
-                placeholder={provider === 'openai' ? 'sk-...' : provider === 'anthropic' ? 'sk-ant-...' : 'r8_...'}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-[0.82rem] font-medium text-muted mb-1.5">
                 YANG Model (optional)
               </label>
               <textarea
@@ -300,7 +285,7 @@ function RunPipelineTab({ form, setForm, pipelineState, setPipelineState }) {
             </div>
 
             <div className="flex gap-2.5 items-center">
-              <button className={btnPrimary} onClick={start} disabled={running || !intent || !apiKey}>
+              <button className={btnPrimary} onClick={start} disabled={running || !intent}>
                 {running ? (
                   <>
                     <span className={spinnerCls} /> Running...
@@ -1086,7 +1071,6 @@ function DatasetResultsTable({ results }) {
 function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
   const polling = useRef(null)
   const limit = form.datasetLimit ?? 5
-  const apiKey = form.apiKey ?? ''
   const provider = form.provider ?? 'replicate'
 
   const setField = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
@@ -1097,7 +1081,6 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         limit: Math.max(1, Math.min(100, parseInt(limit, 10) || 5)),
-        api_key: apiKey,
         provider,
         max_attempts: 3,
         randomize,
@@ -1175,23 +1158,11 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-[0.82rem] font-medium text-muted mb-1.5">API Key *</label>
-          <input
-            className={inputCls}
-            type="password"
-            value={apiKey}
-            onChange={e => setField('apiKey', e.target.value)}
-            placeholder={provider === 'openai' ? 'sk-...' : provider === 'anthropic' ? 'sk-ant-...' : 'r8_...'}
-            disabled={running}
-          />
-        </div>
-
         <div className="flex gap-2.5 items-center flex-wrap">
           <button
             className={btnPrimary}
             onClick={() => startWith(false)}
-            disabled={running || !apiKey}
+            disabled={running}
           >
             {running ? (
               <>
@@ -1204,7 +1175,7 @@ function DatasetTab({ datasetState, setDatasetState, form, setForm }) {
           <button
             className={btnSecondary}
             onClick={() => startWith(true)}
-            disabled={running || !apiKey}
+            disabled={running}
             title="Randomly shuffle dataset before selecting entries"
           >
             Run Random
@@ -1429,7 +1400,6 @@ export default function App() {
     yangModel: '',
     yangData: '',
     maxAttempts: 10,
-    apiKey: '',
     provider: 'replicate',
     datasetLimit: 5,
   })

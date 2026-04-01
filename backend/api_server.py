@@ -113,6 +113,19 @@ class DatasetRunRequest(BaseModel):
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DATASET_PATH = os.path.join(_PROJECT_ROOT, "code", "engine", "classify", "dataset.json")
 
+# Load API keys from frontend/.env.local into environment
+_ENV_LOCAL_PATH = os.path.join(_PROJECT_ROOT, "frontend", ".env.local")
+if os.path.exists(_ENV_LOCAL_PATH):
+    with open(_ENV_LOCAL_PATH) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _, _v = _line.partition("=")
+                os.environ.setdefault(_k.strip(), _v.strip())
+    # Map CLAUDE_API_KEY → ANTHROPIC_API_KEY if not already set
+    if not os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("CLAUDE_API_KEY"):
+        os.environ["ANTHROPIC_API_KEY"] = os.environ["CLAUDE_API_KEY"]
+
 _dataset_stop = threading.Event()
 dataset_state: Dict[str, Any] = {
     "running": False,
@@ -311,11 +324,8 @@ def api_run_pipeline(req: PipelineRequest):
     if not intent:
         return JSONResponse(status_code=400, content={"error": "intent is required"})
 
-    api_key = (req.api_key or "").strip() or None
+    api_key = (req.api_key or "").strip() or os.environ.get("ANTHROPIC_API_KEY") or None
     provider = (req.provider or "replicate").strip().lower()
-    if not api_key:
-        return JSONResponse(status_code=400, content={"error": "API key is required"})
-
     yang_model = (req.yang_model or "").strip() or None
     yang_data = (req.yang_data or "").strip() or None
     max_attempts = req.max_attempts
@@ -501,10 +511,8 @@ def api_run_dataset(req: DatasetRunRequest):
     if pipeline_state["running"]:
         return JSONResponse(status_code=409, content={"error": "Pipeline is running; stop it first"})
 
-    api_key = (req.api_key or "").strip() or None
+    api_key = (req.api_key or "").strip() or os.environ.get("ANTHROPIC_API_KEY") or None
     provider = (req.provider or "replicate").strip().lower()
-    if not api_key:
-        return JSONResponse(status_code=400, content={"error": "API key is required"})
 
     if not os.path.exists(_DATASET_PATH):
         return JSONResponse(

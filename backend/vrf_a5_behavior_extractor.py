@@ -14,6 +14,7 @@ left empty and only suspicious_patterns (source-text regex) is populated.
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from datetime import datetime, timezone
@@ -170,6 +171,8 @@ def _classify_buckets_llm(features: dict, api_key: str = "") -> Set[str]:
     with the bucket taxonomy in the system prompt. Returns the set of matched bucket names.
     Raises RuntimeError if api_key is not provided.
     """
+    if not api_key:
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY") or ""
     if not api_key:
         raise RuntimeError(
             "CLAUDE_API_KEY is required for bucket classification. "

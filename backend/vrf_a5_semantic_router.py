@@ -11,6 +11,7 @@ Raises RuntimeError if no API key is provided no silent fallback.
 from __future__ import annotations
 
 import json
+import os
 import re
 import requests
 from typing import Dict, FrozenSet, List, Tuple
@@ -122,6 +123,8 @@ def route_intent_to_buckets(
     to 1.0 (matched) or 0.0 (not matched) — kept for API compatibility.
     Returns empty frozenset if intent is blank or no buckets match.
     """
+    if not api_key:
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY") or ""
     if not api_key:
         raise RuntimeError(
             "CLAUDE_API_KEY is required for intent routing. "
