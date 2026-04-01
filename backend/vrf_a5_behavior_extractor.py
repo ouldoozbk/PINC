@@ -1,10 +1,11 @@
 """
 VRF A.5: Behavior Extractor — Walk the p4c JSON IR and produce actual_behavior.json.
 
-Bucket classification uses sentence-transformer embeddings (all-MiniLM-L6-v2) over a
+Bucket classification uses Claude Haiku (claude-haiku-4-5-20251001) over a
 natural-language serialisation of the AST feature dict extracted from ir.json (written
-by the p4test --toJSON step in vrf_a_compile.sh).  The model and template embeddings
-are cached in vrf_a5_semantic_router module globals — no second model load.
+by the p4test --toJSON step in vrf_a_compile.sh).
+
+Raises RuntimeError if no API key is provided no silent fallback.
 
 If ir.json is absent (p4test step unavailable), buckets/headers/control_blocks are
 left empty and only suspicious_patterns (source-text regex) is populated.
@@ -18,17 +19,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 
-import numpy as np
-
 import requests
 
 from vrf_a5_ast_parser import features_from_ir_file
 from vrf_a5_bucket_taxonomy import BUCKETS
-from vrf_a5_semantic_router import (
-    SIMILARITY_THRESHOLD,
-    _get_template_embeddings,
-    _load_model,
-)
 
 
 def _detect_suspicious_patterns(code: str) -> List[str]:
@@ -168,32 +162,19 @@ def _features_to_description(features: dict) -> str:
     return " ".join(parts)
 
 
-def _classify_buckets_embedding(features: dict) -> Set[str]:
-    """
-    Embed the code description and compare against BUCKET_TEMPLATES via cosine
-    similarity using the unified SIMILARITY_THRESHOLD — same model and threshold
-    as the intent router, no keyword fallback.
-    """
-    description = _features_to_description(features)
-    model = _load_model()
-    template_embeddings = _get_template_embeddings()
-    vec = model.encode(description, normalize_embeddings=True)
-    return {
-        bucket for bucket, templ_vec in template_embeddings.items()
-        if float(np.dot(vec, templ_vec)) >= SIMILARITY_THRESHOLD
-    }
-
-
 def _classify_buckets_llm(features: dict, api_key: str = "") -> Set[str]:
     """
-    Classify P4 program features into behavior buckets using the Anthropic API.
+    Classify P4 program features into behavior buckets using Claude Haiku.
 
     Sends the behavioral description and raw feature signals to claude-haiku-4-5-20251001
-    with the bucket taxonomy in the system prompt. Returns the set of matched bucket
-    names. Falls back to _classify_buckets_embedding on any API error or missing key.
+    with the bucket taxonomy in the system prompt. Returns the set of matched bucket names.
+    Raises RuntimeError if api_key is not provided.
     """
     if not api_key:
-        return _classify_buckets_embedding(features)
+        raise RuntimeError(
+            "CLAUDE_API_KEY is required for bucket classification. "
+            "Pass --api-key or set the CLAUDE_API_KEY environment variable."
+        )
     description = _features_to_description(features)
 
     BUCKET_DEFINITIONS = {
@@ -296,9 +277,8 @@ def _classify_buckets_llm(features: dict, api_key: str = "") -> Set[str]:
         # Validate — only return known bucket names
         return {b for b in matched if b in BUCKETS}
 
-    except Exception as exc:
-        print(f"[vrf_a5] LLM classifier failed ({exc}), falling back to embedding.")
-        return _classify_buckets_embedding(features)
+    except Exception:
+        raise
 
 
 # Public API

@@ -1,15 +1,9 @@
 """
 VRF A.5: Semantic Comparator — Compare expected vs actual behavior JSON and compute match score.
 
-Scoring is a weighted combination of five components:
+Scoring is a weighted combination of four components:
 
-  intent_code_similarity (0.10) — Direct cosine similarity between the raw intent text
-                                   embedding and the code description embedding (both via
-                                   all-MiniLM-L6-v2).  Small tiebreaker signal: too noisy
-                                   to carry more weight (P4 identifier prose embeds far from
-                                   NL intents even when semantically correct).
-
-  bucket_recall          (0.60) — Recall-based: what fraction of expected buckets appear in the
+  bucket_recall          (0.70) — Recall-based: what fraction of expected buckets appear in the
                                    actual code buckets?  Primary driver now that LLM classifier
                                    (claude-haiku-4-5-20251001) reliably classifies code buckets.
                                    Recall rather than Jaccard because code legitimately implements
@@ -28,19 +22,14 @@ Scoring is a weighted combination of five components:
 from __future__ import annotations
 
 import difflib
-import numpy as np
 from typing import Dict, Optional, Set, Tuple
-
-from vrf_a5_semantic_router import embed_text
-
 
 # Weights (must sum to 1.0)
 WEIGHTS: Dict[str, float] = {
-    "intent_code_similarity": 0.10,
-    "bucket_recall":          0.60,
-    "header_similarity":      0.10,
-    "control_blocks":         0.10,
-    "prohibited_check":       0.10,
+    "bucket_recall":    0.70,
+    "header_similarity": 0.10,
+    "control_blocks":   0.10,
+    "prohibited_check": 0.10,
 }
 
 
@@ -71,16 +60,7 @@ def compute_intent_match_score(
     """
     scores: Dict[str, float] = {k: 0.0 for k in WEIGHTS}
 
-    # 1. Intent ↔ code similarity
-    #    Direct cosine similarity between raw_intent embedding and code_description embedding.
-    raw_intent = (expected_json.get("raw_intent") or "").strip()
-    code_desc  = (actual_json.get("code_description") or "").strip()
-    if raw_intent and code_desc:
-        iv = embed_text(raw_intent)
-        cv = embed_text(code_desc)
-        scores["intent_code_similarity"] = float(np.dot(iv, cv))
-
-    # 2. Bucket recall
+    # 1. Bucket recall
     #    Recall = |expected ∩ actual| / |expected|
     #    A superset actual (code does more than asked) does not penalize.
     expected_buckets: Set[str] = set(expected_json.get("buckets") or [])
@@ -160,7 +140,6 @@ def compute_intent_match_score(
 def generate_intent_mismatch_feedback(
     expected_json: dict,
     actual_json: dict,
-    detailed_scores: Dict[str, float],
     final_score: Optional[float] = None,
 ) -> dict:
     """
@@ -174,18 +153,6 @@ def generate_intent_mismatch_feedback(
         "match_score": final_score,
         "issues": [],
     }
-
-    # Low direct similarity
-    if detailed_scores.get("intent_code_similarity", 1.0) < 0.4:
-        feedback["issues"].append({
-            "type": "LOW_SEMANTIC_SIMILARITY",
-            "severity": "CRITICAL",
-            "details": (
-                f"Direct intent-to-code similarity is {detailed_scores['intent_code_similarity']:.2f}. "
-                "The generated code does not semantically match the intent."
-            ),
-            "suggestion": "Ensure the code implements the behavior described in the intent.",
-        })
 
     # Missing buckets
     expected_buckets: Set[str] = set(expected_json.get("buckets") or [])

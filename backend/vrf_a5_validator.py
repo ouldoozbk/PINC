@@ -56,7 +56,7 @@ def validate_intent(
         return "PARTIAL", match_score, detailed_scores, None
     # FAIL: generate feedback for regeneration
     feedback = generate_intent_mismatch_feedback(
-        expected_json, actual_json, detailed_scores, match_score
+        expected_json, actual_json, match_score
     )
     return "FAIL", match_score, detailed_scores, format_feedback_for_llm(feedback)
 

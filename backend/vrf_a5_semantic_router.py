@@ -1,23 +1,27 @@
 """
 VRF A.5: Semantic Intent Router — Map natural language intent to the 9-bucket taxonomy
-using sentence transformer embeddings (all-MiniLM-L6-v2) and cosine similarity.
+using Claude Haiku (claude-haiku-4-5-20251001) via the Anthropic API.
 
-Each bucket has one canonical template description. The router embeds the user's intent
-and compares it against all nine templates; buckets whose cosine similarity exceeds
-SIMILARITY_THRESHOLD are returned as matched.
+Each bucket has one canonical template description. The router asks Claude to classify
+the intent against the nine templates and returns the matched set.
+
+Raises RuntimeError if no API key is provided no silent fallback.
 """
 
 from __future__ import annotations
 
-from typing import Dict, FrozenSet, List, Optional, Tuple
+import json
+import re
+import requests
+from typing import Dict, FrozenSet, List, Tuple
 
-# Unified similarity threshold for both intent routing and code feature classification.
-# Calibrated from dataset: correct-match intent-to-template cosine scores range 0.37–0.71,
-# so 0.8 (original) was never reachable. 0.50 separates signal from noise at observed data.
+# Kept for callers that still reference it (not actively used by LLM path).
 SIMILARITY_THRESHOLD = 0.50
 
+_ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+_HAIKU_MODEL = "claude-haiku-4-5-20251001"
+
 # Canonical intent template for each of the nine buckets.
-# Written to be paraphrase-rich so the embedding captures the full semantic scope.
 BUCKET_TEMPLATES: Dict[str, str] = {
     "forwarding": (
         "Route and forward packets toward their destination using match-action tables, "
@@ -82,92 +86,88 @@ BUCKET_HEADERS: Dict[str, List[str]] = {
     "vpn_crypto":       ["ethernet", "ipv4"],
 }
 
-
-# Lazy model + embedding cache (avoid loading the model at import time)
-_model = None
-_template_embeddings: Optional[Dict[str, object]] = None  # bucket -> np.ndarray
-
-
-def _load_model():
-    global _model
-    if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer  # type: ignore
-        except Exception as exc:
-            raise RuntimeError(
-                "sentence-transformers is not available. Install dependencies in backend/requirements.txt "
-                "or route_intent_to_buckets will use keyword fallback only."
-            ) from exc
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _model
-
-
-def _get_template_embeddings() -> Dict[str, object]:
-    """Return cached template embeddings, computing them on first call."""
-    global _template_embeddings
-    if _template_embeddings is None:
-        model = _load_model()
-        texts = list(BUCKET_TEMPLATES.values())
-        keys = list(BUCKET_TEMPLATES.keys())
-        vecs = model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
-        _template_embeddings = {k: vecs[i] for i, k in enumerate(keys)}
-    return _template_embeddings
-
-
-def embed_text(text: str):
-    """
-    Embed *text* with all-MiniLM-L6-v2 and return a L2-normalised numpy vector.
-    Reuses the cached model — no second model load.
-    """
-    return _load_model().encode(text, normalize_embeddings=True)
+# Anthropic API helper
+def _call_haiku(system: str, user: str, api_key: str) -> str:
+    """POST to Anthropic messages API and return the raw text response."""
+    response = requests.post(
+        _ANTHROPIC_API_URL,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        json={
+            "model": _HAIKU_MODEL,
+            "max_tokens": 256,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        },
+        timeout=15,
+    )
+    response.raise_for_status()
+    return response.json()["content"][0]["text"].strip()
 
 
 # Public API
 def route_intent_to_buckets(
     intent: str,
-    threshold: float = SIMILARITY_THRESHOLD,
-    fallback_to_best: bool = False,
+    threshold: float = SIMILARITY_THRESHOLD,  # unused in LLM path; kept for API compat
+    api_key: str = "",
 ) -> Tuple[FrozenSet[str], Dict[str, float]]:
     """
-    Embed *intent* and compare against all nine bucket templates via cosine similarity.
+    Classify *intent* into the 9-bucket taxonomy using Claude Haiku.
 
-    Returns:
-        matched_buckets: frozenset of bucket names with similarity >= threshold.
-        similarities:    dict mapping every bucket name to its cosine similarity score.
-
-    By default, no forced bucket fallback is applied. Set `fallback_to_best=True`
-    to preserve the old behavior of always returning at least one bucket.
+    Raises RuntimeError if api_key is not provided.
+    Returns (matched_buckets, similarities) where similarities maps every bucket
+    to 1.0 (matched) or 0.0 (not matched) — kept for API compatibility.
+    Returns empty frozenset if intent is blank or no buckets match.
     """
+    if not api_key:
+        raise RuntimeError(
+            "CLAUDE_API_KEY is required for intent routing. "
+            "Pass --api-key or set the CLAUDE_API_KEY environment variable."
+        )
+
     intent = (intent or "").strip()
     if not intent:
-        return (frozenset({"forwarding"}) if fallback_to_best else frozenset(), {bucket: 0.0 for bucket in BUCKET_TEMPLATES})
+        return frozenset(), {b: 0.0 for b in BUCKET_TEMPLATES}
 
-    import numpy as np  # type: ignore
+    bucket_block = "\n".join(
+        f'- "{name}": {desc}' for name, desc in BUCKET_TEMPLATES.items()
+    )
+    system_prompt = (
+        "You are a P4 network program intent classifier. "
+        "Given a natural-language network programming intent, return ONLY a JSON array "
+        "of matching bucket names from the list below. "
+        "Return [] if nothing matches. No explanation, no markdown, no extra text.\n"
+        "Valid buckets:\n" + bucket_block
+    )
+    user_prompt = (
+        f"Classify this network intent into buckets:\n\n{intent}\n\n"
+        "Return ONLY a JSON array of matching bucket name strings."
+    )
 
-    similarities: Dict[str, float] = {bucket: 0.0 for bucket in BUCKET_TEMPLATES}
-    matched = set()
+    raw = _call_haiku(system_prompt, user_prompt, api_key)
+    raw = re.sub(r'^```[a-z]*\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
+    parsed = json.loads(raw)
+    if not isinstance(parsed, list):
+        raise ValueError(f"Expected JSON array from Haiku, got: {raw!r}")
+    matched = frozenset(b for b in parsed if b in BUCKET_TEMPLATES)
 
-    model = _load_model()
-    intent_vec = model.encode([intent], convert_to_numpy=True, normalize_embeddings=True)[0]
-
-    template_embeddings = _get_template_embeddings()
-    for bucket, tmpl_vec in template_embeddings.items():
-        # Vectors are L2-normalised, so dot product == cosine similarity.
-        similarities[bucket] = float(np.dot(intent_vec, tmpl_vec))
-    matched = {bucket for bucket, score in similarities.items() if score >= threshold}
-
-    if not matched and fallback_to_best and similarities:
-        # Preserve old behavior: choose the highest-scoring bucket for compatibility.
-        best_bucket = max(similarities, key=similarities.__getitem__)
-        matched = {best_bucket}
-
-    return frozenset(sorted(matched)), similarities
+    similarities = {b: (1.0 if b in matched else 0.0) for b in BUCKET_TEMPLATES}
+    return matched, similarities
 
 
-def describe_routing(intent: str, threshold: float = SIMILARITY_THRESHOLD) -> str:
+def classify_code_buckets(description: str, api_key: str = "") -> FrozenSet[str]:
+    """Classify a code behavioral description into the 9-bucket taxonomy using Claude Haiku."""
+    return route_intent_to_buckets(description, api_key=api_key)[0]
+
+
+def describe_routing(intent: str, api_key: str = "") -> str:
     """Human-readable summary of routing result (useful for debugging)."""
-    buckets, sims = route_intent_to_buckets(intent, threshold, fallback_to_best=True)
-    lines = [f"Intent: {intent!r}", f"Threshold: {threshold}", "Similarities:"]
+    buckets, sims = route_intent_to_buckets(intent, api_key=api_key)
+    lines = [f"Intent: {intent!r}", "Similarities:"]
     for bucket in sorted(BUCKET_TEMPLATES):
         marker = "✓" if bucket in buckets else " "
         lines.append(f"  [{marker}] {bucket:<20} {sims[bucket]:.4f}")
@@ -176,6 +176,8 @@ def describe_routing(intent: str, threshold: float = SIMILARITY_THRESHOLD) -> st
 
 
 if __name__ == "__main__":
+    import os
     import sys
     _intent = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Implement an IP router"
-    print(describe_routing(_intent))
+    _key = os.environ.get("CLAUDE_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or ""
+    print(describe_routing(_intent, api_key=_key))

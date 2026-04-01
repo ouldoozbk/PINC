@@ -2,7 +2,7 @@
 VRF A.5: Intent Parser — Convert natural language intent into expected_behavior.json.
 Used before code generation to define the specification we will validate against.
 
-Intent-to-bucket routing now uses semantic embeddings (all-MiniLM-L6-v2) via
+Intent-to-bucket routing uses Claude Haiku (claude-haiku-4-5-20251001) via
 vrf_a5_semantic_router, replacing the previous 12-entry regex INTENT_BEHAVIOR_MAP.
 """
 
@@ -24,12 +24,12 @@ PROHIBITED_PATTERNS = [
 ]
 
 
-def _infer_behaviors_and_headers(intent: str) -> Tuple[List[dict], Set[str]]:
+def _infer_behaviors_and_headers(intent: str, api_key: str = "") -> Tuple[List[dict], Set[str]]:
     """
-    Route the intent to the 9-bucket taxonomy via semantic embeddings, then
-    build required_behaviors and headers_required from the matched buckets.
+    Route the intent to the 9-bucket taxonomy via Claude Haiku (or keyword fallback),
+    then build required_behaviors and headers_required from the matched buckets.
     """
-    matched_buckets, _ = route_intent_to_buckets(intent, fallback_to_best=True)
+    matched_buckets, _ = route_intent_to_buckets(intent, api_key=api_key)
 
     required_behaviors: List[dict] = []
     all_headers: Set[str] = set()
@@ -60,19 +60,18 @@ def _infer_prohibited(intent: str) -> List[str]:
     return prohibited
 
 
-def generate_expected_behavior(intent: str, intent_id: Optional[str] = None) -> dict:
+def generate_expected_behavior(intent: str, intent_id: Optional[str] = None, api_key: str = "") -> dict:
     """
     Convert natural language intent into expected_behavior.json.
 
-    Uses semantic embedding routing (all-MiniLM-L6-v2) to assign the intent
-    to one or more of the nine taxonomy buckets, then builds the expected
-    behavior spec from those buckets.
+    Uses Claude Haiku (or keyword fallback) to assign the intent to one or more
+    of the nine taxonomy buckets, then builds the expected behavior spec from those buckets.
     """
     if not intent or not intent.strip():
         intent = "basic packet forwarding"
 
-    matched_buckets, similarities = route_intent_to_buckets(intent, fallback_to_best=True)
-    required_behaviors, headers_required = _infer_behaviors_and_headers(intent)
+    matched_buckets, similarities = route_intent_to_buckets(intent, api_key=api_key)
+    required_behaviors, headers_required = _infer_behaviors_and_headers(intent, api_key)
     prohibited_behaviors = _infer_prohibited(intent)
 
     expected = {
