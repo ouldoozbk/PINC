@@ -1,0 +1,13 @@
+id,bucket,intent,human_label,compiled,ir_json,expected_buckets,actual_buckets,vrf_a5_verdict,vrf_a5_score,score_bucket_recall,score_header_similarity,score_control_blocks,score_prohibited,agreement
+1,firewall,Drop all packets from source IP 1.2.3.4.,yes,yes,yes,filtering,"error_detection, filtering",PASS,0.9875,1.0,0.875,1.0,1.0,exact
+2,firewall,Drop all packets from source IP 1.2.3.4.,no,yes,yes,filtering,"error_detection, filtering, forwarding",PASS,0.8667,1.0,0.6667,1.0,0.0,disagree
+3,firewall,Allow only inbound TCP port 80. Drop everything else.,partial,yes,yes,filtering,"error_detection, filtering, forwarding",PASS,0.8718,1.0,0.7179,1.0,0.0,close
+4,firewall,Allow only inbound TCP port 80. Drop everything else.,no,yes,yes,filtering,"error_detection, filtering, forwarding",PASS,0.9875,1.0,0.875,1.0,1.0,disagree
+5,basic_tunnel,Encapsulate IPv4 packets inside a GRE tunnel with a fixed tunnel endpoint.,yes,yes,yes,encapsulation,"encapsulation, error_detection, filtering, forwarding",PASS,0.9718,1.0,0.7179,1.0,1.0,exact
+6,basic_tunnel,Encapsulate IPv4 packets inside a GRE tunnel with a fixed tunnel endpoint.,no,yes,yes,encapsulation,"error_detection, filtering, forwarding",FAIL,0.2609,0.0,0.6087,1.0,1.0,exact
+7,basic_tunnel,Strip the outer IP header from tunneled packets arriving at the tunnel endpoint.,yes,yes,yes,encapsulation,"encapsulation, error_detection, filtering, forwarding",PASS,0.9875,1.0,0.875,1.0,1.0,exact
+8,load_balance,Distribute traffic across 4 servers using a hash of the 5-tuple.,yes,yes,yes,forwarding,"error_detection, filtering, forwarding",PASS,0.9609,1.0,0.6087,1.0,1.0,exact
+9,load_balance,Distribute traffic across 4 servers using a hash of the 5-tuple.,no,yes,yes,forwarding,"error_detection, filtering, forwarding",PASS,0.9875,1.0,0.875,1.0,1.0,disagree
+10,default,Route IPv4 packets to the correct output port using longest prefix match on destination address.,yes,yes,yes,forwarding,"error_detection, filtering, forwarding",PASS,0.9875,1.0,0.875,1.0,1.0,exact
+11,default,Route IPv4 packets to the correct output port using longest prefix match on destination address.,no,yes,yes,forwarding,"error_detection, filtering, forwarding",PASS,0.9667,1.0,0.6667,1.0,1.0,disagree
+12,firewall,Block all UDP traffic on port 53 (DNS) from entering the network.,no,yes,yes,filtering,"error_detection, filtering, forwarding",PASS,0.9718,1.0,0.7179,1.0,1.0,disagree
