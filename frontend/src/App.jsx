@@ -1387,6 +1387,259 @@ function LogPanel({ logs }) {
   )
 }
 
+// ─── Eval Dataset Tab ────────────────────────────────────────────────────
+
+const BUCKET_COLORS = {
+  firewall:       'bg-danger/12 text-danger',
+  basic_tunnel:   'bg-info/12 text-info',
+  load_balance:   'bg-warning/12 text-warning',
+  source_routing: 'bg-success/12 text-success',
+  ecn:            'bg-accent/12 text-accent',
+  qos:            'bg-info/12 text-info',
+  multicast:      'bg-warning/12 text-warning',
+  flowcache:      'bg-success/12 text-success',
+  default:        'bg-muted/12 text-muted',
+}
+
+function EvalTab() {
+  const [cases, setCases]       = useState([])
+  const [labels, setLabels]     = useState({})   // { id: { correct, notes } }
+  const [analyses, setAnalyses] = useState({})   // { id: { loading, text, error } }
+  const [genState, setGenState] = useState({})   // { id: { loading, error } }
+  const [saving, setSaving]     = useState(false)
+  const [saveMsg, setSaveMsg]   = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
+
+  useEffect(() => {
+    fetch(`${API}/api/eval-dataset`)
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error)))
+      .then(data => {
+        setCases(data)
+        const restored = {}
+        data.forEach(c => {
+          if (c.your_label) restored[c.id] = { correct: c.your_label, notes: c.notes || '' }
+        })
+        setLabels(restored)
+      })
+      .catch(e => setError(String(e)))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const setLabel = (id, field, value) =>
+    setLabels(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+
+  const save = async () => {
+    setSaving(true)
+    setSaveMsg('')
+    const updated = cases.map(c => ({
+      ...c,
+      your_label: labels[c.id]?.correct || '',
+      notes: labels[c.id]?.notes || '',
+    }))
+    try {
+      await fetch(`${API}/api/eval-dataset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      })
+      setCases(updated)
+      setSaveMsg('Saved.')
+    } catch {
+      setSaveMsg('Save failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const exportCSV = () => {
+    const header = 'id,bucket,intent,vrf_a_passed,your_label,notes\n'
+    const rows = cases.map(c => {
+      const l = labels[c.id]
+      const esc = v => `"${String(v || '').replace(/"/g, '""')}"`
+      return [c.id, c.bucket, esc(c.intent), c.vrf_a_passed ?? '', l?.correct || '', esc(l?.notes || '')].join(',')
+    })
+    const blob = new Blob([header + rows.join('\n')], { type: 'text/csv' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'eval_labels.csv'
+    a.click()
+  }
+
+  const labeled  = cases.filter(c => labels[c.id]?.correct).length
+  const passed   = cases.filter(c => c.vrf_a_passed).length
+  const total    = cases.length
+
+  if (loading) return <div className="text-muted text-sm">Loading eval dataset…</div>
+  if (error)   return (
+    <div className={cardCls}>
+      <div className="text-danger text-sm">{error}</div>
+      <div className="text-muted text-xs mt-2">Run <code>python3 backend/generate_eval_dataset.py</code> first.</div>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* ── Summary bar ── */}
+      <div className={`${cardCls} flex flex-wrap items-center gap-4`}>
+        <div className="flex-1">
+          <div className="flex gap-4 text-[0.82rem] text-muted mb-1.5">
+            <span>VRF A passed: <strong className="text-success">{passed}</strong> / {total}</span>
+            <span>Labeled: <strong className="text-accent">{labeled}</strong> / {total}</span>
+          </div>
+          <div className="w-full bg-edge rounded-full h-1.5">
+            <div className="bg-accent h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${(labeled / total) * 100}%` }} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button className={btnSecondary} onClick={exportCSV} disabled={labeled === 0}>Export CSV</button>
+          <button className={btnPrimary} onClick={save} disabled={saving || labeled === 0}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          {saveMsg && <span className="text-muted text-xs self-center">{saveMsg}</span>}
+        </div>
+      </div>
+
+      {/* ── Cases ── */}
+      {cases.map(c => {
+        const userLabel = labels[c.id]?.correct || ''
+        const userNotes = labels[c.id]?.notes || ''
+        const analysis  = analyses[c.id]
+        const gen       = genState[c.id]
+        const bucketCls = BUCKET_COLORS[c.bucket] || 'bg-muted/12 text-muted'
+        const hasCode   = !!c.p4_code
+
+        const vrfBadge = c.vrf_a_passed === true  ? <span className={badgeSuccess}>VRF A ✓</span>
+                       : c.vrf_a_passed === false ? <span className={badgeError}>VRF A ✗</span>
+                       : null
+
+        const generate = async () => {
+          setGenState(prev => ({ ...prev, [c.id]: { loading: true, error: null } }))
+          try {
+            const res = await fetch(`${API}/api/eval-generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intent: c.intent, max_attempts: 3 }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Generation failed')
+            setCases(prev => prev.map(x => x.id === c.id
+              ? { ...x, p4_code: data.p4_code, vrf_a_passed: data.vrf_a_passed, attempts: data.attempts }
+              : x
+            ))
+            setGenState(prev => ({ ...prev, [c.id]: { loading: false, error: null } }))
+          } catch (e) {
+            setGenState(prev => ({ ...prev, [c.id]: { loading: false, error: e.message } }))
+          }
+        }
+
+        const askClaude = async () => {
+          setAnalyses(prev => ({ ...prev, [c.id]: { loading: true, text: null, error: null } }))
+          try {
+            const res = await fetch(`${API}/api/eval-analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ intent: c.intent, p4_code: c.p4_code }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Request failed')
+            setAnalyses(prev => ({ ...prev, [c.id]: { loading: false, text: data.analysis, error: null } }))
+          } catch (e) {
+            setAnalyses(prev => ({ ...prev, [c.id]: { loading: false, text: null, error: e.message } }))
+          }
+        }
+
+        return (
+          <div key={c.id} className={cardCls}>
+            {/* ── Header ── */}
+            <div className="flex flex-wrap items-start gap-2 mb-3">
+              <span className="text-muted font-mono text-xs mt-0.5">#{c.id}</span>
+              <span className={`${badgeBase} ${bucketCls}`}>{c.bucket}</span>
+              {vrfBadge}
+              {c.attempts != null && (
+                <span className="text-muted text-xs self-center">{c.attempts} attempt{c.attempts !== 1 ? 's' : ''}</span>
+              )}
+              <p className="flex-1 text-[0.92rem] font-medium text-body leading-snug">{c.intent}</p>
+              <button
+                className={btnPrimarySm}
+                onClick={generate}
+                disabled={gen?.loading}
+              >
+                {gen?.loading
+                  ? <><span className={spinnerCls} /> Generating…</>
+                  : hasCode ? 'Regenerate' : 'Generate P4'}
+              </button>
+            </div>
+
+            {/* ── Generation error ── */}
+            {gen?.error && (
+              <div className="mb-3 px-3 py-2 rounded-lg bg-danger/8 border border-danger/20 text-danger text-[0.8rem]">
+                {gen.error}
+              </div>
+            )}
+
+            {/* ── P4 code ── */}
+            {hasCode && (
+              <div className="relative mb-3">
+                <pre className={`${codeViewer} max-h-70 text-[0.75rem]`}>{c.p4_code}</pre>
+                <button
+                  className={`${btnPrimarySm} absolute top-2 right-2`}
+                  onClick={askClaude}
+                  disabled={analysis?.loading}
+                >
+                  {analysis?.loading ? <><span className={spinnerCls} /> Asking…</> : 'Ask Claude'}
+                </button>
+              </div>
+            )}
+
+            {/* ── Claude analysis ── */}
+            {analysis?.text && (
+              <div className="mb-3 px-3 py-2.5 rounded-lg bg-accent/6 border border-accent/20 text-[0.8rem] whitespace-pre-line leading-relaxed">
+                <span className="block text-[0.72rem] font-semibold text-accent uppercase tracking-wide mb-1.5">Claude's analysis</span>
+                {analysis.text}
+              </div>
+            )}
+            {analysis?.error && (
+              <div className="mb-3 px-3 py-2 rounded-lg bg-danger/8 border border-danger/20 text-danger text-[0.8rem]">
+                {analysis.error}
+              </div>
+            )}
+
+            {/* ── Label row (only show once code is present) ── */}
+            {hasCode && (
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-edge">
+                <span className="text-[0.8rem] text-muted font-medium">Your label:</span>
+                {['yes', 'no', 'partial'].map(val => (
+                  <button
+                    key={val}
+                    onClick={() => setLabel(c.id, 'correct', val)}
+                    className={`${btnCls} px-3 py-1.5 text-xs border transition-all ${
+                      userLabel === val
+                        ? val === 'yes'  ? 'bg-success text-white border-success'
+                          : val === 'no' ? 'bg-danger text-white border-danger'
+                          : 'bg-warning text-white border-warning'
+                        : 'bg-input text-muted border-edge hover:border-muted'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                ))}
+                <input
+                  className="ml-auto flex-1 min-w-[160px] max-w-[320px] px-3 py-1.5 bg-input border border-edge rounded-lg text-body text-xs outline-none focus:border-accent"
+                  placeholder="Notes (optional)…"
+                  value={userNotes}
+                  onChange={e => setLabel(c.id, 'notes', e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -1438,6 +1691,7 @@ export default function App() {
     { id: 'intent', label: 'VRF A.5 (Intent)' },
     { id: 'functional', label: 'VRF B (Functional)' },
     { id: 'schemas', label: 'JSON Schemas' },
+    { id: 'eval', label: 'Eval Dataset' },
   ]
 
   return (
@@ -1488,6 +1742,7 @@ export default function App() {
       {tab === 'intent' && <IntentTab intentState={intentState} setIntentState={setIntentState} />}
       {tab === 'functional' && <FunctionalTab vrfbState={vrfbState} setVrfbState={setVrfbState} />}
       {tab === 'schemas' && <SchemasTab />}
+      {tab === 'eval' && <EvalTab />}
     </div>
   )
 }

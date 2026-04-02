@@ -569,6 +569,172 @@ def api_stop_dataset():
     return {"message": "Stop signal sent"}
 
 
+_EVAL_DATASET_PATH = os.path.join(_PROJECT_ROOT, "eval_dataset.json")
+
+
+class EvalAnalyzeRequest(BaseModel):
+    intent: str
+    p4_code: str
+
+
+class EvalGenerateRequest(BaseModel):
+    intent: str
+    max_attempts: int = 3
+
+
+_ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+_ANALYSIS_MODEL    = "claude-haiku-4-5-20251001"
+_ANALYSIS_SYSTEM   = (
+    "You are a P4 network programming expert. "
+    "Given a natural language intent and a P4 program, analyze whether the program implements the intent. "
+    "Be concise and direct."
+)
+_ANALYSIS_PROMPT = """\
+Intent: "{intent}"
+
+P4 code:
+```
+{p4_code}
+```
+
+Does this P4 program implement the intent? Answer in exactly this format (one line each):
+1. Headers: [what packet headers are parsed]
+2. Table key: [what field is matched and how — exact / lpm / ternary]
+3. Key action: [what action fires on a match]
+4. Default action: [what happens when nothing matches]
+5. Verdict: yes / no / partial — one sentence explaining why
+"""
+
+
+@app.post("/api/eval-generate")
+def api_eval_generate(req: EvalGenerateRequest):
+    """Generate P4 for a single intent and run VRF A compilation. Synchronous / blocking."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY") or ""
+    if not api_key:
+        return JSONResponse(status_code=400, content={"error": "CLAUDE_API_KEY not set"})
+
+    try:
+        from pipeline import cleanup_files, create_detailed_prompt, generate_p4_code
+
+        cleanup_files()
+        last_errors = None
+
+        for attempt in range(1, req.max_attempts + 1):
+            if attempt == 1:
+                prompt = create_detailed_prompt(req.intent, None, None, None)
+            else:
+                error_section = (
+                    f"\n=== PREVIOUS ATTEMPT ===\n{p4_code or ''}\n\n"
+                    f"=== COMPILATION ERRORS ===\n{last_errors or 'Unknown error'}\n\n"
+                    "Fix all errors. Output only valid P4 code."
+                )
+                prompt = create_detailed_prompt(req.intent, None, None, error_section)
+
+            p4_code = generate_p4_code(prompt)
+            if p4_code is None:
+                continue
+
+            cleaned = clean_p4_code(p4_code)
+            with open("test.p4", "w") as f:
+                f.write(cleaned)
+
+            success, errors = validate_p4_compilation(cleaned, "test.p4", attempt)
+            if success:
+                return {
+                    "p4_code": cleaned,
+                    "vrf_a_passed": True,
+                    "attempts": attempt,
+                    "errors": None,
+                }
+            last_errors = errors
+
+        return {
+            "p4_code": cleaned if p4_code else "",
+            "vrf_a_passed": False,
+            "attempts": req.max_attempts,
+            "errors": last_errors,
+        }
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/api/eval-analyze")
+def api_eval_analyze(req: EvalAnalyzeRequest):
+    """Send intent + P4 to Claude Haiku for structured 5-point analysis."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY") or ""
+    if not api_key:
+        return JSONResponse(status_code=400, content={"error": "CLAUDE_API_KEY not set"})
+
+    prompt = _ANALYSIS_PROMPT.format(
+        intent=req.intent.strip(),
+        p4_code=req.p4_code.strip()[:8000],  # cap at 8k chars to stay within token budget
+    )
+
+    import requests as _requests
+    try:
+        resp = _requests.post(
+            _ANTHROPIC_API_URL,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            json={
+                "model": _ANALYSIS_MODEL,
+                "max_tokens": 400,
+                "system": _ANALYSIS_SYSTEM,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        text = resp.json()["content"][0]["text"].strip()
+        return {"analysis": text}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/api/eval-dataset")
+def api_get_eval_dataset():
+    """Return the eval dataset for human review."""
+    if not os.path.exists(_EVAL_DATASET_PATH):
+        return JSONResponse(status_code=404, content={"error": "eval_dataset.json not found. Run backend/generate_eval_dataset.py first."})
+    with open(_EVAL_DATASET_PATH) as f:
+        return json.load(f)
+
+
+_P4_JSONL_PATH = os.path.join(_PROJECT_ROOT, "dataset", "p4gcc", "data", "FINAL_p4_ds_clean_comments.jsonl")
+
+
+@app.get("/api/eval-source/{index}")
+def api_eval_source(index: int):
+    """Return the raw JSONL entry at *index* so the UI can verify the source."""
+    if not os.path.exists(_P4_JSONL_PATH):
+        return JSONResponse(status_code=404, content={"error": "JSONL file not found"})
+    with open(_P4_JSONL_PATH) as f:
+        for i, line in enumerate(f):
+            if i == index:
+                entry = json.loads(line)
+                return {
+                    "jsonl_index": index,
+                    "annotation":  entry.get("annotation", ""),
+                    "p4_file_path": entry.get("p4_file_path", ""),
+                    "repo_name":   entry.get("repo_name", ""),
+                    "compiles":    entry.get("compiles"),
+                    "p4_code":     (entry.get("cleaned_p4") or entry.get("raw_p4") or "").strip(),
+                }
+    return JSONResponse(status_code=404, content={"error": f"Index {index} out of range"})
+
+
+@app.post("/api/eval-dataset")
+def api_save_eval_dataset(cases: list = Body(...)):
+    """Persist human labels back to eval_dataset.json."""
+    with open(_EVAL_DATASET_PATH, "w") as f:
+        json.dump(cases, f, indent=2)
+    return {"message": f"Saved {len(cases)} cases"}
+
+
 @app.get("/api/files/{name}")
 def api_get_file(name: str):
     """Retrieve generated files."""
@@ -808,7 +974,7 @@ def _run_vrf_b(p4_code: str) -> dict:
     try:
         timeout = VRF_B_CONFIG["timeout"]
         url = f"http://localhost:{port}/validate"
-        data, _status = _json_post(url, {"code": p4_code}, timeout)
+        data, _ = _json_post(url, {"code": p4_code}, timeout)
         return {
             "success": data.get("success", False),
             "skipped": False,
