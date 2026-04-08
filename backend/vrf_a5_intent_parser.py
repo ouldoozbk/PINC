@@ -2,7 +2,7 @@
 VRF A.5: Intent Parser — Convert natural language intent into expected_behavior.json.
 Used before code generation to define the specification we will validate against.
 
-Intent-to-bucket routing uses Claude Haiku (claude-haiku-4-5-20251001) via
+Intent-to-bucket routing uses LLM (claude-haiku-4-5-20251001 for testing) via
 vrf_a5_semantic_router, replacing the previous 12-entry regex INTENT_BEHAVIOR_MAP.
 """
 
@@ -26,7 +26,7 @@ PROHIBITED_PATTERNS = [
 
 def _infer_behaviors_and_headers(intent: str, api_key: str = "") -> Tuple[List[dict], Set[str]]:
     """
-    Route the intent to the 9-bucket taxonomy via Claude Haiku (or keyword fallback),
+    Route the intent to the 9-bucket taxonomy via LLM (Claude Haiku),
     then build required_behaviors and headers_required from the matched buckets.
     """
     matched_buckets, _ = route_intent_to_buckets(intent, api_key=api_key)
@@ -64,11 +64,9 @@ def generate_expected_behavior(intent: str, intent_id: Optional[str] = None, api
     """
     Convert natural language intent into expected_behavior.json.
 
-    Uses Claude Haiku (or keyword fallback) to assign the intent to one or more
+    Uses LLM  to assign the intent to one or more
     of the nine taxonomy buckets, then builds the expected behavior spec from those buckets.
     """
-    if not intent or not intent.strip():
-        intent = "basic packet forwarding"
 
     matched_buckets, similarities = route_intent_to_buckets(intent, api_key=api_key)
     required_behaviors, headers_required = _infer_behaviors_and_headers(intent, api_key)

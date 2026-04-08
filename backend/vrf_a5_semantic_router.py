@@ -1,8 +1,8 @@
 """
 VRF A.5: Semantic Intent Router — Map natural language intent to the 9-bucket taxonomy
-using Claude Haiku (claude-haiku-4-5-20251001) via the Anthropic API.
+using Claude Haiku (claude-haiku-4-5-20251001 for testing) via the Anthropic API.
 
-Each bucket has one canonical template description. The router asks Claude to classify
+Each bucket has one canonical template description. The router asks the LLM to classify
 the intent against the nine templates and returns the matched set.
 
 Raises RuntimeError if no API key is provided no silent fallback.
@@ -112,7 +112,6 @@ def _call_haiku(system: str, user: str, api_key: str) -> str:
 # Public API
 def route_intent_to_buckets(
     intent: str,
-    threshold: float = SIMILARITY_THRESHOLD,  # unused in LLM path; kept for API compat
     api_key: str = "",
 ) -> Tuple[FrozenSet[str], Dict[str, float]]:
     """
