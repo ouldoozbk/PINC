@@ -695,11 +695,40 @@ def api_eval_analyze(req: EvalAnalyzeRequest):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _seed_eval_dataset_from_jsonl() -> list:
+    """Seed eval dataset cases from FINAL_p4_ds_clean_comments.jsonl."""
+    cases = []
+    with open(_P4_JSONL_PATH) as f:
+        for i, line in enumerate(f):
+            entry = json.loads(line)
+            annotation = (entry.get("annotation") or "").strip()
+            if not annotation:
+                continue
+            ground_truth = (entry.get("cleaned_p4") or entry.get("raw_p4") or "").strip()
+            cases.append({
+                "id":              i + 1,
+                "jsonl_index":     i,
+                "bucket":          entry.get("bucket", "general"),
+                "intent":          annotation,
+                "ground_truth_p4": ground_truth,
+                "p4_code":         "",
+                "vrf_a_passed":    None,
+                "attempts":        None,
+                "your_label":      "",
+                "notes":           "",
+            })
+    with open(_EVAL_DATASET_PATH, "w") as f:
+        json.dump(cases, f, indent=2)
+    return cases
+
+
 @app.get("/api/eval-dataset")
 def api_get_eval_dataset():
-    """Return the eval dataset for human review."""
+    """Return the eval dataset for human review. Auto-seeds from JSONL if missing."""
     if not os.path.exists(_EVAL_DATASET_PATH):
-        return JSONResponse(status_code=404, content={"error": "eval_dataset.json not found. Run backend/generate_eval_dataset.py first."})
+        if not os.path.exists(_P4_JSONL_PATH):
+            return JSONResponse(status_code=404, content={"error": "eval_dataset.json not found. Run backend/generate_eval_dataset.py first."})
+        return _seed_eval_dataset_from_jsonl()
     with open(_EVAL_DATASET_PATH) as f:
         return json.load(f)
 

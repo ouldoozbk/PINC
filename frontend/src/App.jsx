@@ -1466,9 +1466,14 @@ function EvalTab() {
     a.click()
   }
 
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 5
+
   const labeled  = cases.filter(c => labels[c.id]?.correct).length
   const passed   = cases.filter(c => c.vrf_a_passed).length
   const total    = cases.length
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const pageCases  = cases.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   if (loading) return <div className="text-muted text-sm">Loading eval dataset…</div>
   if (error)   return (
@@ -1501,8 +1506,17 @@ function EvalTab() {
         </div>
       </div>
 
+      {/* ── Pagination controls ── */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-muted text-xs">Page {page + 1} of {totalPages} ({total} total)</span>
+        <div className="flex gap-2">
+          <button className={btnSecondary} onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Prev</button>
+          <button className={btnSecondary} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>Next →</button>
+        </div>
+      </div>
+
       {/* ── Cases ── */}
-      {cases.map(c => {
+      {pageCases.map(c => {
         const userLabel = labels[c.id]?.correct || ''
         const userNotes = labels[c.id]?.notes || ''
         const analysis  = analyses[c.id]
@@ -1579,17 +1593,28 @@ function EvalTab() {
               </div>
             )}
 
-            {/* ── P4 code ── */}
-            {hasCode && (
-              <div className="relative mb-3">
-                <pre className={`${codeViewer} max-h-70 text-[0.75rem]`}>{c.p4_code}</pre>
-                <button
-                  className={`${btnPrimarySm} absolute top-2 right-2`}
-                  onClick={askClaude}
-                  disabled={analysis?.loading}
-                >
-                  {analysis?.loading ? <><span className={spinnerCls} /> Asking…</> : 'Ask Claude'}
-                </button>
+            {/* ── Code columns ── */}
+            {(hasCode || c.ground_truth_p4) && (
+              <div className={`grid mb-3 gap-3 ${hasCode && c.ground_truth_p4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {c.ground_truth_p4 && (
+                  <div>
+                    <span className="block text-[0.72rem] font-semibold text-muted uppercase tracking-wide mb-1">Ground Truth</span>
+                    <pre className={`${codeViewer} max-h-70 text-[0.75rem]`}>{c.ground_truth_p4}</pre>
+                  </div>
+                )}
+                {hasCode && (
+                  <div className="relative">
+                    <span className="block text-[0.72rem] font-semibold text-accent uppercase tracking-wide mb-1">Generated</span>
+                    <pre className={`${codeViewer} max-h-70 text-[0.75rem]`}>{c.p4_code}</pre>
+                    <button
+                      className={`${btnPrimarySm} absolute top-6 right-2`}
+                      onClick={askClaude}
+                      disabled={analysis?.loading}
+                    >
+                      {analysis?.loading ? <><span className={spinnerCls} /> Asking…</> : 'Ask Claude'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

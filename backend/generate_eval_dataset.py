@@ -1,6 +1,6 @@
 """
-Generate the eval dataset seed file — intents only, no P4 code yet.
-P4 code is generated later via the /api/eval-generate endpoint (Claude Sonnet + VRF A).
+Generate the eval dataset seed file from FINAL_p4_ds_clean_comments.jsonl.
+Each JSONL entry's `annotation` becomes the intent; p4_code starts blank (generated later).
 
 Run once:  python3 backend/generate_eval_dataset.py
 Then use the Eval Dataset tab to generate P4 for each intent and annotate.
@@ -12,33 +12,34 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 OUT_CSV  = PROJECT_ROOT / "eval_dataset.csv"
 OUT_JSON = PROJECT_ROOT / "eval_dataset.json"
+JSONL_PATH = PROJECT_ROOT / "dataset" / "p4gcc" / "data" / "FINAL_p4_ds_clean_comments.jsonl"
 
-CASES = [
-    # ── FIREWALL ──────────────────────────────────────────────────────────────
-    {"id": 1,  "bucket": "firewall",       "intent": "Drop all packets from source IP 1.2.3.4."},
-    {"id": 2,  "bucket": "firewall",       "intent": "Allow only inbound TCP port 80. Drop everything else."},
-    {"id": 3,  "bucket": "firewall",       "intent": "Block all UDP traffic on port 53 (DNS) from entering the network."},
-    # ── BASIC TUNNEL ──────────────────────────────────────────────────────────
-    {"id": 4,  "bucket": "basic_tunnel",   "intent": "Encapsulate IPv4 packets inside a GRE tunnel with a fixed tunnel endpoint."},
-    {"id": 5,  "bucket": "basic_tunnel",   "intent": "Strip the outer IP header from tunneled packets arriving at the tunnel endpoint."},
-    # ── LOAD BALANCE ──────────────────────────────────────────────────────────
-    {"id": 6,  "bucket": "load_balance",   "intent": "Distribute traffic across 4 servers using a hash of the 5-tuple."},
-    {"id": 7,  "bucket": "load_balance",   "intent": "Implement round-robin load balancing across 3 backend servers using a register counter."},
-    # ── DEFAULT FORWARDING ────────────────────────────────────────────────────
-    {"id": 8,  "bucket": "default",        "intent": "Route IPv4 packets to the correct output port using longest prefix match on destination address."},
-    {"id": 9,  "bucket": "default",        "intent": "Forward Ethernet frames based on destination MAC address with a learned MAC table."},
-    # ── QoS ───────────────────────────────────────────────────────────────────
-    {"id": 10, "bucket": "qos",            "intent": "Mark packets with DSCP EF (value 46) when they arrive on port 1."},
-    # ── SOURCE ROUTING ────────────────────────────────────────────────────────
-    {"id": 11, "bucket": "source_routing", "intent": "Forward packets along an explicit path stored as a stack of port IDs in the packet header."},
-    # ── ECN ───────────────────────────────────────────────────────────────────
-    {"id": 12, "bucket": "ecn",            "intent": "Set the ECN bits to Congestion Experienced (0b11) when the queue depth exceeds a threshold."},
-]
 
-def blank_case(c):
-    return {**c, "p4_code": "", "vrf_a_passed": None, "attempts": None, "your_label": "", "notes": ""}
+def load_from_jsonl():
+    cases = []
+    with open(JSONL_PATH) as f:
+        for i, line in enumerate(f):
+            entry = json.loads(line)
+            annotation = (entry.get("annotation") or "").strip()
+            if not annotation:
+                continue
+            ground_truth = (entry.get("cleaned_p4") or entry.get("raw_p4") or "").strip()
+            cases.append({
+                "id":              i + 1,
+                "jsonl_index":     i,
+                "bucket":          entry.get("bucket", "general"),
+                "intent":          annotation,
+                "ground_truth_p4": ground_truth,
+                "p4_code":         "",
+                "vrf_a_passed":    None,
+                "attempts":        None,
+                "your_label":      "",
+                "notes":           "",
+            })
+    return cases
 
-cases = [blank_case(c) for c in CASES]
+
+cases = load_from_jsonl()
 
 csv_fields = ["id", "bucket", "intent", "vrf_a_passed", "your_label", "notes"]
 with open(OUT_CSV, "w", newline="") as f:
@@ -50,5 +51,5 @@ with open(OUT_CSV, "w", newline="") as f:
 with open(OUT_JSON, "w") as f:
     json.dump(cases, f, indent=2)
 
-print(f"Generated {len(cases)} intent-only cases → eval_dataset.json")
+print(f"Generated {len(cases)} intent-only cases from JSONL → eval_dataset.json")
 print("Next: open the Eval Dataset tab and click 'Generate P4' on each card.")
