@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* ── Custom theme matching the existing dark palette ── */
+@theme {
+  --color-surface: #0f1117;
+  --color-card: #1a1d27;
+  --color-input: #242734;
+  --color-edge: #2e3348;
+  --color-body: #e4e6f0;
+  --color-muted: #8b8fa8;
+  --color-accent: #6c5ce7;
+  --color-accent-hover: #7e6ff0;
+  --color-success: #00b894;
+  --color-warning: #fdcb6e;
+  --color-danger: #e17055;
+  --color-info: #74b9ff;
+  --color-code-bg: #0d1117;
+  --color-code-text: #c9d1d9;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Base layer: minimal resets Tailwind doesn't cover ── */
+@layer base {
+  body {
+    @apply bg-surface text-body leading-relaxed min-h-screen;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-edge rounded-sm;
+  }
+}

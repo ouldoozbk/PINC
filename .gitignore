@@ -1,0 +1,30 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Generated P4 artifacts
+*.p4i
+test.p4
+test.json
+
+# Pipeline runtime files
+validation_status.txt
+error_summary.txt
+p4_validation_errors.txt
+temp_errors.txt
+detailed_prompt.txt
+expected_behavior.json
+actual_behavior.json
+
+# BMv2 / p4testgen outputs
+*.p4info.txtpb
+ss-log.txt
+out-p4testgen/
