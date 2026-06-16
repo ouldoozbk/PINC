@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+httpx
+replicate
+sentence-transformers
+anthropic
+torch
+numpy

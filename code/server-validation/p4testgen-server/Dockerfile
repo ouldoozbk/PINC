@@ -1,4 +1,5 @@
-FROM p4lang/p4c
+# Use amd64 so this works on Apple Silicon (p4lang/p4c has no arm64 image)
+FROM --platform=linux/amd64 p4lang/p4c
 
 RUN apt update && apt install -y nano
 
@@ -18,7 +19,7 @@ RUN apt update && apt install -y netcat inotify-tools
 
 RUN mkdir -p /work_space
 
-COPY run_tests.sh /work_space/run_tests.sh
+COPY vrf_b_run_tests.sh /work_space/run_tests.sh
 COPY container_handler.py /work_space/container_handler.py
 
 WORKDIR /work_space

@@ -1,0 +1,13 @@
+id,bucket,intent,vrf_a_passed,your_label,notes
+1,firewall,"Drop all packets from source IP 1.2.3.4.",true,yes,"drops packets but doesn't do anything with it. Which should be intended"
+2,firewall,"Drop all packets from source IP 1.2.3.4.",,no,"No there's no exact match on the src IP 1.2.3.4"
+3,firewall,"Allow only inbound TCP port 80. Drop everything else.",true,partial,"This does drop all non-TCP packets that aren't on port 80, but there's no concept of inbound so it can come from anywhere. I will say this this partial pass or FAIL."
+4,firewall,"Allow only inbound TCP port 80. Drop everything else.",,no,"Doesn't parse port headers and no explicit check for port 80"
+5,basic_tunnel,"Encapsulate IPv4 packets inside a GRE tunnel with a fixed tunnel endpoint.",true,yes,""
+6,basic_tunnel,"Encapsulate IPv4 packets inside a GRE tunnel with a fixed tunnel endpoint.",,no,"This is just ACL lol"
+7,basic_tunnel,"Strip the outer IP header from tunneled packets arriving at the tunnel endpoint.",true,yes,""
+8,load_balance,"Distribute traffic across 4 servers using a hash of the 5-tuple.",true,yes,"since for ecmp_nhop has size=2, this doesn't account for for 4 servers, but this does distribute traffic using ECMP."
+9,load_balance,"Distribute traffic across 4 servers using a hash of the 5-tuple.",,no,"this is just doing LPM with no ECMP or any hash"
+10,default,"Route IPv4 packets to the correct output port using longest prefix match on destination address.",true,yes,""
+11,default,"Route IPv4 packets to the correct output port using longest prefix match on destination address.",,no,"LPM is completely missing"
+12,firewall,"Block all UDP traffic on port 53 (DNS) from entering the network.",true,no,"Despite what claude thinks, this drop all packets if the destination port is port 53. This doesn't check if the src IP is inbound (aka within the intenral network)"
